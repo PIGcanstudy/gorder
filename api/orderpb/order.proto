@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package orderpb;
+
+import "google/protobuf/empty.proto";
+
+service OrderService {
+    rpc CreateOrder(CreateOrderRequest) returns (google.protobuf.Empty);
+    rpc GetOrder(GetOrderRequest) returns (Order);
+    rpc UpdateOrder(Order) returns (google.protobuf.Empty);
+}
+
+message CreateOrderRequest {
+    string CustomerID = 1; // 谁申请订单
+    repeated ItemWithQuantity Items = 2; // 申请的订单内容
+}
+
+message ItemWithQuantity {
+    string ID = 1; // 项目的ID
+    int32 Quantity = 2; // 项目的数量
+}
+
+message GetOrderRequest {
+    string OrderID = 1; // 项目的ID
+    string CustomerID = 2; // 是谁请求的
+}
+
+message Item {
+    string ID = 1;
+    string Name = 2;
+    int32 Quantity = 3;
+    string PriceID = 4; // 与价格对应
+}
+
+message Order {
+    string ID = 1;
+    string CustomeID = 2;
+    string Status = 3; // 订单的状态
+    repeated Item Items = 4; // 订单的内容
+    string PaymentLink = 5; // 支付连接
+}
