@@ -1,9 +1,10 @@
-module github.com/PIGcanstudy/gorder/common
+module github.com/PIGcanstudy/gorder/tree/main/internal/common
 
 go 1.23.5
 
 require (
 	github.com/gin-gonic/gin v1.10.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/spf13/viper v1.19.0
 	google.golang.org/grpc v1.62.1
@@ -37,6 +38,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect

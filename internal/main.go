@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/PIGcanstudy/gorder/common/server"
-	"github.com/PIGcanstudy/gorder/order/ports"
+	"github.com/PIGcanstudy/gorder/tree/main/internal/common/server"
+	"github.com/PIGcanstudy/gorder/tree/main/internal/order/ports"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 )

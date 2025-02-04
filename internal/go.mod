@@ -1,4 +1,4 @@
-module github.com/PIGcanstudy/gorder/order
+module github.com/PIGcanstudy/gorder/tree/main/internal/order/ports
 
 go 1.23.5
 

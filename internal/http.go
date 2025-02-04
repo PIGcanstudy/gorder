@@ -1,5 +1,6 @@
 package main
 
+import "github.com/gin-gonic/gin"
 
 type HTTPserver struct {
 }
@@ -10,4 +11,3 @@ func (server *HTTPserver) GetCustomerCustomerIdOrdersOrderId(c *gin.Context, cus
 func (server *HTTPserver) PostCustomerCustomerIdOrders(c *gin.Context, customerId string) {
 
 }
-s

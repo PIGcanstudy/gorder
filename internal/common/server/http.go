@@ -8,7 +8,7 @@ import (
 // 初始化并运行Http服务器
 func RunHTTPServer(serviceName string, wrapper func(router *gin.Engine)) {
 	// 得到服务器地址
-	addr := viper.Sub("order").GetString("http-addr")
+	addr := viper.Sub(serviceName).GetString("http-addr")
 	// 初始化并运行Http服务器
 	RunHTTPServerOnAddr(addr, wrapper)
 }
