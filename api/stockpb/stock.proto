@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+option go_package = "github.com/PIGcanstudy/gorder/common/genproto/orderpb";
+
+package orderpb;
+
+import "orderpb/order.proto";
+
+service StockService {
+  rpc GetItems(GetItemsRequest) returns (GetItemsResponse); // 获取库存中的项目
+  rpc CheckIfItemsInStock(CheckIfItemsInStockRequest) returns (CheckIfItemsInStockResponse); // 检查库存中是否还有项目 
+}
+
+message GetItemsRequest {
+  repeated string ItemIDs = 1; // 项目ID
+}
+
+message GetItemsResponse{
+  repeated orderpb.Item Items = 1; // 项目的相关信息
+}
+
+message CheckIfItemsInStockRequest {
+  repeated orderpb.ItemWithQuantity Items = 1; // 项目的数量
+}
+
+message CheckIfItemsInStockResponse {
+  int32 InStock = 1; // 有多少个库存
+  repeated orderpb.Item Items = 2; // 库存里货物的具体信息
+}

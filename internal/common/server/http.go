@@ -1,6 +1,8 @@
 package server
 
 import (
+	"log"
+
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 )
@@ -18,6 +20,7 @@ func RunHTTPServerOnAddr(addr string, wrapper func(*gin.Engine)) {
 	wrapper(apiRouter)
 	apiRouter.Group("/api")
 
+	log.Printf("http server strat, listening on %s\n", addr)
 	if err := apiRouter.Run(addr); err != nil {
 		panic(err)
 	}

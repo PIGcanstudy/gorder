@@ -2,6 +2,12 @@ package config
 
 import "github.com/spf13/viper"
 
+func init() {
+	if err := NewViperConfig(); err != nil {
+		panic(err)
+	}
+}
+
 func NewViperConfig() error {
 	viper.SetConfigName("global")
 	viper.SetConfigType("yaml")             // 指定配置文件类型
