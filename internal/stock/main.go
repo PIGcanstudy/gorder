@@ -34,7 +34,7 @@ func main() {
 	case "grpc":
 		server.RunGrpcServer(serviceName, func(server *grpc.Server) {
 			svc := ports.NewGRPCServer(application)
-			// 此匿名函数的作用是注册服务到指定位置上
+			// 此匿名函数的作用是将实现的服务注册到grpc的服务器上
 			stockpb.RegisterStockServiceServer(server, svc)
 		})
 	case "http":
