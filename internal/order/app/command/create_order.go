@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"errors"
 
 	"github.com/PIGcanstudy/gorder/common/decorator"
 	"github.com/PIGcanstudy/gorder/common/genproto/orderpb"
@@ -43,22 +44,14 @@ func NewCreateOrderHandler(
 }
 
 func (h createOrderHandler) Handle(ctx context.Context, cmd CreateOrder) (*CreateOrderResult, error) {
-	// TODO: call stock grpc to get items.
-	_, err := h.stockGRPC.CheckIfItemsInStock(ctx, cmd.Items)
-	resp, err := h.stockGRPC.GetItems(ctx, []string{"123"})
-	logrus.Info("createOrderHandler ||resp from stockGRPC.GetItems", resp)
-	var stockResponse []*orderpb.Item // 模拟返回
-
-	for _, item := range cmd.Items {
-		stockResponse = append(stockResponse, &orderpb.Item{
-			ID:       item.ID,
-			Quantity: item.Quantity,
-		})
+	validItems, err := h.validate(ctx, cmd.Items)
+	if err != nil {
+		return nil, err
 	}
 
 	order, err := h.orderRepo.Create(ctx, &domain.Order{
 		CustomerID: cmd.CustomerID,
-		Items:      stockResponse,
+		Items:      validItems,
 	})
 	if err != nil {
 		return nil, err
@@ -67,4 +60,35 @@ func (h createOrderHandler) Handle(ctx context.Context, cmd CreateOrder) (*Creat
 	return &CreateOrderResult{
 		OrderID: order.ID,
 	}, nil
+}
+
+func (c createOrderHandler) validate(ctx context.Context, items []*orderpb.ItemWithQuantity) ([]*orderpb.Item, error) {
+	if len(items) == 0 { //首先检验长度是不是0
+		return nil, errors.New("must have at least one item")
+	}
+	// 将前端传来的数据中重复的部分合并
+	items = packItems(items)
+
+	// 检验库存是否足够
+	resp, err := c.stockGRPC.CheckIfItemsInStock(ctx, items)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Items, nil
+}
+
+func packItems(items []*orderpb.ItemWithQuantity) []*orderpb.ItemWithQuantity {
+	merged := make(map[string]int32)
+	for _, item := range items {
+		merged[item.ID] += item.Quantity
+	}
+	// 合并后的数据
+	var res []*orderpb.ItemWithQuantity
+	for id, quantity := range merged {
+		res = append(res, &orderpb.ItemWithQuantity{
+			ID:       id,
+			Quantity: quantity,
+		})
+	}
+	return res
 }
