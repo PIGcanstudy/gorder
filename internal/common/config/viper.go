@@ -1,6 +1,10 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+	"strings"
+
+	"github.com/spf13/viper"
+)
 
 func init() {
 	if err := NewViperConfig(); err != nil {
@@ -12,6 +16,8 @@ func NewViperConfig() error {
 	viper.SetConfigName("global")
 	viper.SetConfigType("yaml")             // 指定配置文件类型
 	viper.AddConfigPath("../common/config") // 指定路径
-	viper.AutomaticEnv()                    // 如果有环境变量就去环境变量上去找
+	viper.EnvKeyReplacer(strings.NewReplacer("-", "_"))
+	//_ = viper.BindEnv("stripe_key", "STRIPE_KEY") // 绑定环境变量
+	viper.AutomaticEnv() // 如果有环境变量就去环境变量上去找
 	return viper.ReadInConfig()
 }

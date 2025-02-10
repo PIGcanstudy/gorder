@@ -13,4 +13,8 @@ stock:
   grpc-addr: 127.0.0.1:5003
 
 consul:
-  addr: 127.0.0.1:8500
+  addr: 192.168.244.129:8500
+
+# Linux 下的stripe-key: "${STRIPE_KEY}"
+# Windows 下的
+stripe-key: "STRIPE_KEY"
