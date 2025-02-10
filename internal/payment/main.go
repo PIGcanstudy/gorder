@@ -5,6 +5,7 @@ import (
 	"github.com/PIGcanstudy/gorder/common/config"
 	"github.com/PIGcanstudy/gorder/common/logging"
 	"github.com/PIGcanstudy/gorder/common/server"
+	"github.com/PIGcanstudy/gorder/payment/infrastructure/consumer"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -34,6 +35,9 @@ func main() {
 		_ = ch.Close()
 		_ = closeConnFn()
 	}()
+
+	// 启动协程不断监听 RabbitMQ 队列的消息
+	go consumer.NewConsumer().Listen(ch)
 
 	switch serviceType {
 	case "http":
