@@ -2,12 +2,16 @@ package command
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
+	"github.com/PIGcanstudy/gorder/common/broker"
 	"github.com/PIGcanstudy/gorder/common/decorator"
 	"github.com/PIGcanstudy/gorder/common/genproto/orderpb"
 	"github.com/PIGcanstudy/gorder/order/app/query"
 	domain "github.com/PIGcanstudy/gorder/order/domain/order"
+	amqp "github.com/rabbitmq/amqp091-go"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,25 +29,38 @@ type CreateOrderHandler decorator.CommandHandler[CreateOrder, *CreateOrderResult
 type createOrderHandler struct {
 	orderRepo domain.Repository
 	stockGRPC query.StockService // 使用接口而不是具体的实现
+	channel   *amqp.Channel
 }
 
 func NewCreateOrderHandler(
 	orderRepo domain.Repository,
 	stockGRPC query.StockService,
+	channel *amqp.Channel,
 	logger *logrus.Entry,
 	metricClient decorator.MetricsClient,
 ) CreateOrderHandler {
 	if orderRepo == nil {
 		panic("orderRepo is nil")
 	}
+	if stockGRPC == nil {
+		panic("nil stockGRPC")
+	}
+	if channel == nil {
+		panic("nil channel ")
+	}
 	return decorator.ApplyCommandDecorators[CreateOrder, *CreateOrderResult](
-		createOrderHandler{orderRepo: orderRepo, stockGRPC: stockGRPC},
+		createOrderHandler{
+			orderRepo: orderRepo,
+			stockGRPC: stockGRPC,
+			channel:   channel,
+		},
 		logger,
 		metricClient,
 	)
 }
 
 func (h createOrderHandler) Handle(ctx context.Context, cmd CreateOrder) (*CreateOrderResult, error) {
+	// 验证数据
 	validItems, err := h.validate(ctx, cmd.Items)
 	if err != nil {
 		return nil, err
@@ -52,6 +69,30 @@ func (h createOrderHandler) Handle(ctx context.Context, cmd CreateOrder) (*Creat
 	order, err := h.orderRepo.Create(ctx, &domain.Order{
 		CustomerID: cmd.CustomerID,
 		Items:      validItems,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// 开始向RabbitMQ发送消息
+
+	// 首先需要创建消息队列
+	q, err := h.channel.QueueDeclare(broker.EventOrderCreated, true, false, false, false, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// 序列化要发送的订单消息
+	marshalledOrder, err := json.Marshal(order)
+	if err != nil {
+		return nil, err
+	}
+
+	// 发布一个消息到exchange，并指定队列的name
+	err = h.channel.PublishWithContext(ctx, "", q.Name, false, false, amqp.Publishing{
+		ContentType:  "application/json",
+		DeliveryMode: amqp.Persistent, // 消息持久化
+		Body:         marshalledOrder,
 	})
 	if err != nil {
 		return nil, err

@@ -7,6 +7,7 @@ import (
 	"github.com/PIGcanstudy/gorder/common/config"
 	"github.com/PIGcanstudy/gorder/common/discovery"
 	"github.com/PIGcanstudy/gorder/common/genproto/stockpb"
+	"github.com/PIGcanstudy/gorder/common/logging"
 	"github.com/PIGcanstudy/gorder/common/server"
 	"github.com/PIGcanstudy/gorder/stock/ports"
 	"github.com/PIGcanstudy/gorder/stock/service"
@@ -16,6 +17,7 @@ import (
 )
 
 func init() {
+	logging.Init()
 	if err := config.NewViperConfig(); err != nil {
 		logrus.Fatalf("failed to load config: %v", err)
 	}

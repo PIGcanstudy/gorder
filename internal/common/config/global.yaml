@@ -12,8 +12,20 @@ stock:
   http-addr: 127.0.0.1:8283
   grpc-addr: 127.0.0.1:5003
 
+payment:
+  service_name: payment
+  server_to_run: http
+  http-addr: 127.0.0.1:8284
+  grpc-addr: 127.0.0.1:5004
+
 consul:
   addr: 192.168.244.129:8500
+
+rabbitmq:
+  user: guest
+  password: guest
+  host: 192.168.244.129
+  port: 5672
 
 # Linux 下的stripe-key: "${STRIPE_KEY}"
 # Windows 下的
