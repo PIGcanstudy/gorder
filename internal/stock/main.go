@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/PIGcanstudy/gorder/common/config"
+	"github.com/PIGcanstudy/gorder/common/discovery"
 	"github.com/PIGcanstudy/gorder/common/genproto/stockpb"
 	"github.com/PIGcanstudy/gorder/common/server"
 	"github.com/PIGcanstudy/gorder/stock/ports"
@@ -28,6 +29,12 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	deregisterFunc, err := discovery.RegisterToConsul(ctx, serviceName)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	defer deregisterFunc()
 
 	application := service.NewApplication(ctx)
 	switch serviceType {

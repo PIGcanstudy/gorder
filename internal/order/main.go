@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/PIGcanstudy/gorder/common/config"
+	"github.com/PIGcanstudy/gorder/common/discovery"
 	"github.com/PIGcanstudy/gorder/common/genproto/orderpb"
 	"github.com/PIGcanstudy/gorder/common/server"
 	"github.com/PIGcanstudy/gorder/order/ports"
@@ -28,6 +29,12 @@ func main() {
 
 	application, cleanup := service.NewApplication(ctx)
 	defer cleanup()
+
+	deregisterFunc, err := discovery.RegisterToConsul(ctx, serviceName)
+	if err != nil {
+		logrus.Fatalf("failed to register to consul: %v", err)
+	}
+	defer deregisterFunc()
 
 	go server.RunGrpcServer(serviceName, func(s *grpc.Server) {
 		svc := ports.NewGRPCServer(application)
