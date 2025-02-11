@@ -78,7 +78,7 @@ func (m *MemoryOrderRepository) Update(ctx context.Context, order *domain.Order,
 	for i, o := range m.store {
 		if o.ID == order.ID && o.CustomerID == order.CustomerID {
 			found = true
-			updatedOrder, err := updateFn(ctx, o) // 这里的作用是什么？可能更新的时候会有连锁的更新
+			updatedOrder, err := updateFn(ctx, order) // 这里的作用是什么？可能更新的时候会有连锁的更新
 			if err != nil {
 				return err
 			}

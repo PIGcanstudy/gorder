@@ -34,12 +34,23 @@ func NewCheckIfItemsInStockHandler(
 	)
 }
 
+// TODO: 删掉
+var stub = map[string]string{
+	"1": "price_1QqmtG9Q405C6ViegaDVnhiJ",
+}
+
 func (h checkIfItemsInStockHandler) Handle(ctx context.Context, query CheckIfItemsInStock) ([]*orderpb.Item, error) {
 	var res []*orderpb.Item
 	for _, i := range query.Items {
+		// TODO: 改成从数据库或者从stripe中获取
+		priceId, ok := stub[i.ID]
+		if !ok {
+			priceId = stub["1"]
+		}
 		res = append(res, &orderpb.Item{
 			ID:       i.ID,
 			Quantity: i.Quantity,
+			PriceID:  priceId,
 		})
 	}
 	return res, nil

@@ -17,6 +17,7 @@ import (
 )
 
 func NewApplication(ctx context.Context) (app.Application, func()) {
+	// 创建grpc客户端
 	stockGrpcClient, closeGrpcClient, err := grpcClient.NewStockGRPCClient(ctx)
 	if err != nil {
 		logrus.Panicf("in NewApplication, NewStockGRPCClient error: %v", err)
