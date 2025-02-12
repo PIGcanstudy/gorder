@@ -47,7 +47,7 @@ func (c *Consumer) Listen(ch *amqp.Channel) {
 	// 使用协程来不间断的处理取得的消息
 	go func() {
 		for msg := range msgs {
-			c.handleMessage(msg, q, ch)
+			c.handleMessage(msg, q)
 		}
 	}()
 
@@ -56,7 +56,7 @@ func (c *Consumer) Listen(ch *amqp.Channel) {
 }
 
 // 处理支付消息
-func (c *Consumer) handleMessage(msg amqp.Delivery, q amqp.Queue, ch *amqp.Channel) {
+func (c *Consumer) handleMessage(msg amqp.Delivery, q amqp.Queue) {
 	logrus.Infof("Order receive a message from %s, msg=%v", q.Name, string(msg.Body))
 
 	o := &domain.Order{}

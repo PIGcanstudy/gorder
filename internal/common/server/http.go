@@ -11,6 +11,9 @@ import (
 func RunHTTPServer(serviceName string, wrapper func(router *gin.Engine)) {
 	// 得到服务器地址
 	addr := viper.Sub(serviceName).GetString("http-addr")
+	if addr == "" {
+		panic("empty http address")
+	}
 	// 初始化并运行Http服务器
 	RunHTTPServerOnAddr(addr, wrapper)
 }

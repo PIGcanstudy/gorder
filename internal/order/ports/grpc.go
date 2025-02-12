@@ -51,7 +51,7 @@ func (G GRPCServer) UpdateOrder(ctx context.Context, request *orderpb.Order) (_ 
 	order, err := domain.NewOrder(request.ID, request.CustomerID, request.Status, request.PaymentLink, request.Items)
 	if err != nil {
 		err = status.Error(codes.Internal, err.Error())
-		return
+		return nil, err
 	}
 
 	// 执行更新order操作(会修改数据库)
@@ -61,5 +61,5 @@ func (G GRPCServer) UpdateOrder(ctx context.Context, request *orderpb.Order) (_ 
 			return order, nil
 		},
 	})
-	return
+	return nil, err
 }
