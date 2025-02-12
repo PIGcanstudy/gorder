@@ -3,6 +3,7 @@ package processor
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/PIGcanstudy/gorder/common/genproto/orderpb"
 	"github.com/stripe/stripe-go/v79"
@@ -21,7 +22,7 @@ func NewStripeProcessor(apiKey string) *StripeProcessor {
 	return &StripeProcessor{apiKey: apiKey}
 }
 
-var (
+const (
 	successURL = "http://localhost:8282/success" // 成功创建连接后的支付连接地址
 )
 
@@ -37,16 +38,17 @@ func (s StripeProcessor) CreatePaymentLink(ctx context.Context, order *orderpb.O
 
 	marshalledItems, _ := json.Marshal(order.Items)
 	metadata := map[string]string{
-		"orderID":    order.ID,
-		"customerID": order.CustomerID,
-		"status":     order.Status,
-		"items":      string(marshalledItems),
+		"orderID":     order.ID,
+		"customerID":  order.CustomerID,
+		"status":      order.Status,
+		"items":       string(marshalledItems),
+		"paymentLink": order.PaymentLink,
 	}
 	params := &stripe.CheckoutSessionParams{
 		Metadata:   metadata, // 订单的附加信息
 		LineItems:  items,    // 商品的详细信息
 		Mode:       stripe.String(string(stripe.CheckoutSessionModePayment)),
-		SuccessURL: stripe.String(successURL),
+		SuccessURL: stripe.String(fmt.Sprintf("%s?customerID=%s&orderID=%s", successURL, order.CustomerID, order.ID)),
 	}
 
 	result, err := session.New(params) // 创建一个新的Session

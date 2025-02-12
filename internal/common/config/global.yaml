@@ -30,3 +30,6 @@ rabbitmq:
 # Linux 下的stripe-key: "${STRIPE_KEY}"
 # Windows 下的
 stripe-key: "STRIPE_KEY"
+
+# Linux 下 endpoint_stripe_secret: "${ENDPOINT_STRIPE_SECRET}"
+endpoint.stripe_secret: "ENDPOINT_STRIPE_SECRET"

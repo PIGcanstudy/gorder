@@ -25,11 +25,8 @@ func main() {
 	defer cancel()
 	serviceType := viper.GetString("payment.server_to_run")
 	serviceName := viper.GetString("payment.service_name")
-
 	application, cleanup := service.NewApplication(ctx)
 	defer cleanup()
-
-	paymentHandler := NewPaymentHandler()
 
 	ch, closeConnFn := broker.ConnectRabbitMQ(
 		viper.GetString("rabbitmq.user"),
@@ -37,6 +34,8 @@ func main() {
 		viper.GetString("rabbitmq.host"),
 		viper.GetString("rabbitmq.port"),
 	)
+
+	paymentHandler := NewPaymentHandler(ch)
 
 	defer func() {
 		_ = ch.Close()
