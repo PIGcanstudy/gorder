@@ -7,6 +7,7 @@ import (
 	"github.com/PIGcanstudy/gorder/common/config"
 	"github.com/PIGcanstudy/gorder/common/logging"
 	"github.com/PIGcanstudy/gorder/common/server"
+	"github.com/PIGcanstudy/gorder/common/tracing"
 	"github.com/PIGcanstudy/gorder/payment/infrastructure/consumer"
 	"github.com/PIGcanstudy/gorder/payment/service"
 	"github.com/sirupsen/logrus"
@@ -27,6 +28,12 @@ func main() {
 	serviceName := viper.GetString("payment.service_name")
 	application, cleanup := service.NewApplication(ctx)
 	defer cleanup()
+
+	shutdown, err := tracing.InitJaegerProvider(viper.GetString("jaeger.url"), serviceName)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	defer shutdown(ctx)
 
 	ch, closeConnFn := broker.ConnectRabbitMQ(
 		viper.GetString("rabbitmq.user"),

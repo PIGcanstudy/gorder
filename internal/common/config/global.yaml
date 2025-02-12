@@ -1,5 +1,9 @@
 fallback-grpc-addr: 127.0.0.1:3030
 
+jaeger:
+  url: "http://192.168.244.129:14268/api/traces"
+
+
 order:
   service_name: order
   server_to_run: http

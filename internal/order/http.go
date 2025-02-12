@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/PIGcanstudy/gorder/common/genproto/orderpb"
+	"github.com/PIGcanstudy/gorder/common/tracing"
 	"github.com/PIGcanstudy/gorder/order/app"
 	"github.com/PIGcanstudy/gorder/order/app/command"
 	"github.com/PIGcanstudy/gorder/order/app/query"
@@ -16,7 +17,9 @@ type HTTPServer struct {
 }
 
 func (server HTTPServer) GetCustomerCustomerIdOrdersOrderId(c *gin.Context, customerId string, orderId string) {
-	o, err := server.app.Queries.GetCustomerOrder.Handle(c, query.GetCustomerOrder{
+	ctx, span := tracing.Start(c, "GetCustomerCustomerIDOrdersOrderID")
+	defer span.End()
+	o, err := server.app.Queries.GetCustomerOrder.Handle(ctx, query.GetCustomerOrder{
 		CustomerID: customerId,
 		OrderID:    orderId,
 	})
@@ -27,7 +30,8 @@ func (server HTTPServer) GetCustomerCustomerIdOrdersOrderId(c *gin.Context, cust
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"message": "success",
+		"message":  "success",
+		"trace_id": tracing.TraceID(ctx),
 		"data": gin.H{
 			"Order": o,
 		},
@@ -35,6 +39,8 @@ func (server HTTPServer) GetCustomerCustomerIdOrdersOrderId(c *gin.Context, cust
 }
 
 func (server HTTPServer) PostCustomerCustomerIdOrders(c *gin.Context, customerId string) {
+	ctx, span := tracing.Start(c, "PostCustomerCustomerIDOrders")
+	defer span.End()
 	// 获取请求信息
 	var req orderpb.CreateOrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -44,7 +50,7 @@ func (server HTTPServer) PostCustomerCustomerIdOrders(c *gin.Context, customerId
 		return
 	}
 
-	result, err := server.app.Commands.CreateOrder.Handle(c, command.CreateOrder{
+	result, err := server.app.Commands.CreateOrder.Handle(ctx, command.CreateOrder{
 		CustomerID: req.CustomerID,
 		Items:      req.Items,
 	})
@@ -58,6 +64,7 @@ func (server HTTPServer) PostCustomerCustomerIdOrders(c *gin.Context, customerId
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":      "success",
+		"trace_id":     tracing.TraceID(ctx),
 		"customer_id":  req.CustomerID,
 		"order_id":     result.OrderID,
 		"redirect_url": fmt.Sprintf("http://localhost:8282/success?customerID=%s&orderID=%s", req.CustomerID, result.OrderID),

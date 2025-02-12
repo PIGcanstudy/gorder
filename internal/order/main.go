@@ -9,6 +9,7 @@ import (
 	"github.com/PIGcanstudy/gorder/common/genproto/orderpb"
 	"github.com/PIGcanstudy/gorder/common/logging"
 	"github.com/PIGcanstudy/gorder/common/server"
+	"github.com/PIGcanstudy/gorder/common/tracing"
 	"github.com/PIGcanstudy/gorder/order/infrastructure/consumer"
 	"github.com/PIGcanstudy/gorder/order/ports"
 	"github.com/PIGcanstudy/gorder/order/service"
@@ -39,6 +40,12 @@ func main() {
 		logrus.Fatalf("failed to register to consul: %v", err)
 	}
 	defer deregisterFunc()
+
+	shutdown, err := tracing.InitJaegerProvider(viper.GetString("jaeger.url"), serviceName)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	defer shutdown(ctx)
 
 	ch, closeCh := broker.ConnectRabbitMQ(
 		viper.GetString("rabbitmq.user"),

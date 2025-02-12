@@ -9,6 +9,7 @@ import (
 	"github.com/PIGcanstudy/gorder/common/genproto/stockpb"
 	"github.com/PIGcanstudy/gorder/common/logging"
 	"github.com/PIGcanstudy/gorder/common/server"
+	"github.com/PIGcanstudy/gorder/common/tracing"
 	"github.com/PIGcanstudy/gorder/stock/ports"
 	"github.com/PIGcanstudy/gorder/stock/service"
 	"github.com/sirupsen/logrus"
@@ -37,6 +38,12 @@ func main() {
 		logrus.Fatal(err)
 	}
 	defer deregisterFunc()
+
+	shutdown, err := tracing.InitJaegerProvider(viper.GetString("jaeger.url"), serviceName)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	defer shutdown(ctx)
 
 	application := service.NewApplication(ctx)
 	switch serviceType {
