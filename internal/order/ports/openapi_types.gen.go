@@ -16,25 +16,25 @@ type Error struct {
 
 // Item defines model for Item.
 type Item struct {
-	Id       string `json:"id"`
-	Name     string `json:"name"`
-	PriceId  string `json:"price_id"`
-	Quantity int32  `json:"quantity"`
+	Id       string `json:"id,omitempty"`
+	Name     string `json:"name",omitempty`
+	PriceId  string `json:"price_id,omitempty"`
+	Quantity int32  `json:"quantity,omitempty"`
 }
 
 // ItemWithQuantity defines model for ItemWithQuantity.
 type ItemWithQuantity struct {
-	Id       string `json:"id"`
-	Quantity int32  `json:"quantity"`
+	Id       string `json:"id,omitempty"`
+	Quantity int32  `json:"quantity,omitempty"`
 }
 
 // Order defines model for Order.
 type Order struct {
-	CustomerId  string `json:"customer_id"`
-	Id          string `json:"id"`
-	Items       []Item `json:"items"`
-	PaymentLink string `json:"payment_link"`
-	Status      string `json:"status"`
+	CustomerId  string `json:"customer_id,omitempty"`
+	Id          string `json:"id,omitempty"`
+	Items       []Item `json:"items,omitempty"`
+	PaymentLink string `json:"payment_link,omitempty"`
+	Status      string `json:"status,omitempty"`
 }
 
 // Response defines model for Response.

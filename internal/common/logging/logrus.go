@@ -2,7 +2,6 @@ package logging
 
 import (
 	"github.com/sirupsen/logrus"
-	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 // 本文件是为了规范日志格式
@@ -21,9 +20,4 @@ func SetFormatter(logger *logrus.Logger) {
 			logrus.FieldKeyMsg:   "message",
 		},
 	})
-
-	logger.SetFormatter(&prefixed.TextFormatter{
-		ForceFormatting: true,
-	})
-
 }

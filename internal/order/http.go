@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/PIGcanstudy/gorder/common/genproto/orderpb"
+	client "github.com/PIGcanstudy/gorder/common/client/order"
+	"github.com/PIGcanstudy/gorder/common/convertor"
 	"github.com/PIGcanstudy/gorder/common/tracing"
 	"github.com/PIGcanstudy/gorder/order/app"
 	"github.com/PIGcanstudy/gorder/order/app/command"
@@ -42,7 +43,7 @@ func (server HTTPServer) PostCustomerCustomerIdOrders(c *gin.Context, customerId
 	ctx, span := tracing.Start(c, "PostCustomerCustomerIDOrders")
 	defer span.End()
 	// 获取请求信息
-	var req orderpb.CreateOrderRequest
+	var req client.CreateOrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -51,8 +52,8 @@ func (server HTTPServer) PostCustomerCustomerIdOrders(c *gin.Context, customerId
 	}
 
 	result, err := server.app.Commands.CreateOrder.Handle(ctx, command.CreateOrder{
-		CustomerID: req.CustomerID,
-		Items:      req.Items,
+		CustomerID: req.CustomerId,
+		Items:      convertor.NewItemWithQuantityConvertor().ClientsToEntities(req.Items),
 	})
 
 	if err != nil {
@@ -65,8 +66,8 @@ func (server HTTPServer) PostCustomerCustomerIdOrders(c *gin.Context, customerId
 	c.JSON(http.StatusOK, gin.H{
 		"message":      "success",
 		"trace_id":     tracing.TraceID(ctx),
-		"customer_id":  req.CustomerID,
+		"customer_id":  req.CustomerId,
 		"order_id":     result.OrderID,
-		"redirect_url": fmt.Sprintf("http://localhost:8282/success?customerID=%s&orderID=%s", req.CustomerID, result.OrderID),
+		"redirect_url": fmt.Sprintf("http://localhost:8282/success?customerID=%s&orderID=%s", req.CustomerId, result.OrderID),
 	})
 }
