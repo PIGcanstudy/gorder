@@ -99,7 +99,6 @@ func waitFor(addr string, timeout time.Duration) bool {
 				close(portAlivable) // 外部的select语句会被唤醒
 				return
 			}
-			logrus.Debug("net.Dial faild ")
 			time.Sleep(200 * time.Millisecond)
 		}
 	}()

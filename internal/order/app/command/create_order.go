@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/PIGcanstudy/gorder/common/broker"
 	"github.com/PIGcanstudy/gorder/common/decorator"
@@ -11,6 +12,7 @@ import (
 	"github.com/PIGcanstudy/gorder/order/app/query"
 	domain "github.com/PIGcanstudy/gorder/order/domain/order"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"go.opentelemetry.io/otel"
 
 	"github.com/sirupsen/logrus"
 )
@@ -60,6 +62,16 @@ func NewCreateOrderHandler(
 }
 
 func (h createOrderHandler) Handle(ctx context.Context, cmd CreateOrder) (*CreateOrderResult, error) {
+
+	// 首先需要创建消息队列
+	q, err := h.channel.QueueDeclare(broker.EventOrderCreated, true, false, false, false, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	t := otel.Tracer("rabbitmq")
+	ctx, span := t.Start(ctx, fmt.Sprintf("rabbitmq.%s.publish", q.Name))
+	defer span.End()
 	// 验证数据
 	validItems, err := h.validate(ctx, cmd.Items)
 	if err != nil {
@@ -76,23 +88,20 @@ func (h createOrderHandler) Handle(ctx context.Context, cmd CreateOrder) (*Creat
 
 	// 开始向RabbitMQ发送消息
 
-	// 首先需要创建消息队列
-	q, err := h.channel.QueueDeclare(broker.EventOrderCreated, true, false, false, false, nil)
-	if err != nil {
-		return nil, err
-	}
-
 	// 序列化要发送的订单消息
 	marshalledOrder, err := json.Marshal(order)
 	if err != nil {
 		return nil, err
 	}
 
+	header := broker.InjectRabbitMQHeaders(ctx)
+
 	// 发布一个消息到exchange，并指定队列的name
 	err = h.channel.PublishWithContext(ctx, "", q.Name, false, false, amqp.Publishing{
 		ContentType:  "application/json",
 		DeliveryMode: amqp.Persistent, // 消息持久化
 		Body:         marshalledOrder,
+		Headers:      header,
 	})
 	if err != nil {
 		return nil, err

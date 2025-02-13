@@ -3,6 +3,7 @@ package consumer
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/PIGcanstudy/gorder/common/broker"
 	"github.com/PIGcanstudy/gorder/order/app"
@@ -10,6 +11,7 @@ import (
 	domain "github.com/PIGcanstudy/gorder/order/domain/order"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel"
 )
 
 // payment从RabbitMQ中拿到消息，向Stripe发送创建支付连接请求
@@ -59,6 +61,11 @@ func (c *Consumer) Listen(ch *amqp.Channel) {
 func (c *Consumer) handleMessage(msg amqp.Delivery, q amqp.Queue) {
 	logrus.Infof("Order receive a message from %s, msg=%v", q.Name, string(msg.Body))
 
+	ctx := broker.ExtractRabbitMQHeaders(context.Background(), msg.Headers)
+	t := otel.Tracer("rabbitmq")
+	_, span := t.Start(ctx, fmt.Sprintf("rabbitmq.%s.consume", q.Name))
+	defer span.End()
+
 	o := &domain.Order{}
 	// 反序列化消息
 	if err := json.Unmarshal(msg.Body, o); err != nil {
@@ -83,6 +90,8 @@ func (c *Consumer) handleMessage(msg amqp.Delivery, q amqp.Queue) {
 		// TODO: 重试机制
 		return
 	}
+
+	span.AddEvent("order.updated")
 
 	// 处理消息后发送确认消息
 	_ = msg.Ack(false)
