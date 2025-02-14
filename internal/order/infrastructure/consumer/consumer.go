@@ -49,7 +49,7 @@ func (c *Consumer) Listen(ch *amqp.Channel) {
 	// 使用协程来不间断的处理取得的消息
 	go func() {
 		for msg := range msgs {
-			c.handleMessage(msg, q)
+			c.handleMessage(ch, msg, q)
 		}
 	}()
 
@@ -58,7 +58,7 @@ func (c *Consumer) Listen(ch *amqp.Channel) {
 }
 
 // 处理支付消息
-func (c *Consumer) handleMessage(msg amqp.Delivery, q amqp.Queue) {
+func (c *Consumer) handleMessage(ch *amqp.Channel, msg amqp.Delivery, q amqp.Queue) {
 	logrus.Infof("Order receive a message from %s, msg=%v", q.Name, string(msg.Body))
 
 	ctx := broker.ExtractRabbitMQHeaders(context.Background(), msg.Headers)
@@ -66,16 +66,24 @@ func (c *Consumer) handleMessage(msg amqp.Delivery, q amqp.Queue) {
 	_, span := t.Start(ctx, fmt.Sprintf("rabbitmq.%s.consume", q.Name))
 	defer span.End()
 
+	var err error
+	defer func() {
+		if err != nil {
+			_ = msg.Nack(false, false)
+		} else {
+			_ = msg.Ack(false) // 确认消息已经被消费
+		}
+	}()
+
 	o := &domain.Order{}
 	// 反序列化消息
-	if err := json.Unmarshal(msg.Body, o); err != nil {
+	if err = json.Unmarshal(msg.Body, o); err != nil {
 		logrus.Infof("failed to unmarshall msg to order, err=%v", err)
-		_ = msg.Nack(false, false) // 发送没有确认消息
 		return
 	}
 
 	// 更新数据库中的订单信息
-	_, err := c.app.Commands.UpdateOrder.Handle(context.Background(), command.UpdateOrder{
+	_, err = c.app.Commands.UpdateOrder.Handle(context.Background(), command.UpdateOrder{
 		Order: o,
 		UpdateFn: func(ctx context.Context, order *domain.Order) (*domain.Order, error) {
 			if err := order.IsPaid(); err != nil { // 校验下订单是否被支付
@@ -87,13 +95,13 @@ func (c *Consumer) handleMessage(msg amqp.Delivery, q amqp.Queue) {
 
 	if err != nil {
 		logrus.Infof("error updating order, orderID = %s, err = %v", o.ID, err)
-		// TODO: 重试机制
+		if err = broker.HandleRetry(ctx, ch, &msg); err != nil {
+			logrus.Warnf("retry_error, error handling retry, messageID=%s, err=%v", msg.MessageId, err)
+		}
 		return
 	}
 
 	span.AddEvent("order.updated")
 
-	// 处理消息后发送确认消息
-	_ = msg.Ack(false)
 	logrus.Info("consume success")
 }

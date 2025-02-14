@@ -39,3 +39,5 @@ stripe-key: "STRIPE_KEY"
 endpoint.stripe_secret: "ENDPOINT_STRIPE_SECRET"
 
 dial-grpc-timeout: 10
+
+rabbitmq.max-retry: 3

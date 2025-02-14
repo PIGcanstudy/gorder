@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/PIGcanstudy/gorder/common/broker"
-	"github.com/PIGcanstudy/gorder/common/config"
+	_ "github.com/PIGcanstudy/gorder/common/config"
 	"github.com/PIGcanstudy/gorder/common/logging"
 	"github.com/PIGcanstudy/gorder/common/server"
 	"github.com/PIGcanstudy/gorder/common/tracing"
@@ -16,9 +16,6 @@ import (
 
 func init() {
 	logging.Init()
-	if err := config.NewViperConfig(); err != nil {
-		logrus.Fatalf("Failed to load config: %v", err)
-	}
 }
 
 func main() {

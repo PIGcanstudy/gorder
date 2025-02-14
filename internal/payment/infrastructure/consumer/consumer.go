@@ -59,24 +59,31 @@ func (c *Consumer) handleMessage(msg amqp.Delivery, q amqp.Queue, ch *amqp.Chann
 	_, span := tr.Start(ctx, fmt.Sprintf("rabbitmq.%s.consume", q.Name))
 	defer span.End()
 
+	var err error
+	defer func() {
+		if err != nil {
+			_ = msg.Nack(false, false)
+		} else {
+			_ = msg.Ack(false) // 确认消息已经被消费
+		}
+	}()
+
 	o := &orderpb.Order{}
 	// 反序列化消息
 	if err := json.Unmarshal(msg.Body, o); err != nil {
 		logrus.Infof("failed to unmarshall msg to order, err=%v", err)
-		_ = msg.Nack(false, false) // 发送没有确认消息
 		return
 	}
 	log.Printf("order=%v", o)
 	// 发起创建支付连接请求并存储信息
 	if _, err := c.app.Commands.CreatePayment.Handle(ctx, command.CreatePayment{Order: o}); err != nil {
-		// TODO: retry
-		logrus.Infof("failed to create order, err=%v", err)
-		_ = msg.Nack(false, false)
+		logrus.Infof("failed to create payment, err=%v", err)
+		if err = broker.HandleRetry(ctx, ch, &msg); err != nil {
+			logrus.Warnf("retry_error, error handling retry, messageID=%s, err=%v", msg.MessageId, err)
+		}
 		return
 	}
 
 	span.AddEvent("payment.created")
-	// 处理消息后发送确认消息
-	_ = msg.Ack(false)
 	logrus.Info("consume success")
 }
