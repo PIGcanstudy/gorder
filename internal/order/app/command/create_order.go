@@ -79,13 +79,13 @@ func (h createOrderHandler) Handle(ctx context.Context, cmd CreateOrder) (*Creat
 		return nil, err
 	}
 
-	order, err := h.orderRepo.Create(ctx, &domain.Order{
-		CustomerID: cmd.CustomerID,
-		Items:      validItems,
-	})
+	// 在发给payment服务之前状态为pending状态
+	pendingOrder, err := domain.NewPendingOrder(cmd.CustomerID, validItems)
 	if err != nil {
 		return nil, err
 	}
+
+	order, err := h.orderRepo.Create(ctx, pendingOrder)
 
 	// 开始向RabbitMQ发送消息
 
