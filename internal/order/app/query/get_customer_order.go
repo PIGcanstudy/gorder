@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/PIGcanstudy/gorder/common/decorator"
+	"github.com/PIGcanstudy/gorder/common/tracing"
 	domain "github.com/PIGcanstudy/gorder/order/domain/order"
 	"github.com/sirupsen/logrus"
 )
@@ -37,10 +38,13 @@ func NewGetCustomerOrderHandler(
 	)
 }
 func (g getCustomerOrderHandler) Handle(ctx context.Context, query GetCustomerOrder) (*domain.Order, error) {
+	_, span := tracing.Start(ctx, "handle get customer order query")
 	// 从仓库中获取一个order
 	o, err := g.orderRepo.Get(ctx, query.OrderID, query.CustomerID)
 	if err != nil {
 		return nil, err
 	}
+	span.AddEvent("get_success")
+	span.End()
 	return o, nil
 }
