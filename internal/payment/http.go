@@ -28,6 +28,7 @@ func NewPaymentHandler(ch *amqp.Channel) *PanymentHandler {
 	return &PanymentHandler{channel: ch}
 }
 
+// stripe listen --forward-to localhost:8284/api/webhook
 func (h *PanymentHandler) RegisterRoutes(c *gin.Engine) {
 	c.POST("/api/webhook", h.handleWebhook)
 }

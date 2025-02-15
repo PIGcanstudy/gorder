@@ -1,7 +1,7 @@
 fallback-grpc-addr: 127.0.0.1:3030
 
 jaeger:
-  url: "http://192.168.1.8:14268/api/traces"
+  url: "http://192.168.43.128:14268/api/traces"
 
 
 order:
@@ -23,19 +23,19 @@ payment:
   grpc-addr: 127.0.0.1:5004
 
 consul:
-  addr: 192.168.1.8:8500
+  addr: 192.168.43.128:8500
 
 rabbitmq:
   user: guest
   password: guest
-  host: 192.168.1.8
+  host: 192.168.43.128
   port: 5672
   max-retry: 3
 
 mongo:
   user: root
   password: password
-  host: 192.168.1.8
+  host: 192.168.43.128
   port: 27017
   db-name: "order"
   coll-name: "order"

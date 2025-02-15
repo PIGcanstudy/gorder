@@ -34,6 +34,26 @@ func (q queryMetricsDecorator[C, R]) Handle(ctx context.Context, cmd C) (result 
 	return result, err
 }
 
+type commandMetricsDecorator[C, R any] struct {
+	base   CommandHandler[C, R]
+	client MetricsClient
+}
+
+func (q commandMetricsDecorator[C, R]) Handle(ctx context.Context, cmd C) (result R, err error) {
+	start := time.Now()
+	actionName := strings.ToLower(generateActionName(cmd))
+	defer func() {
+		end := time.Since(start)
+		q.client.Inc(fmt.Sprintf("command.%s.duration", actionName), int(end.Seconds()))
+		if err == nil {
+			q.client.Inc(fmt.Sprintf("command.%s.success", actionName), 1)
+		} else {
+			q.client.Inc(fmt.Sprintf("command.%s.failure", actionName), 1)
+		}
+	}()
+	return q.base.Handle(ctx, cmd)
+}
+
 // generateActionName 根据命令生成一个动作名称
 func generateActionName[C any](cmd C) string {
 	return strings.Split(fmt.Sprintf("%T", cmd), ".")[1]
