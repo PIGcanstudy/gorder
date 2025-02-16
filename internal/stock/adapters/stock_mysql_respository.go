@@ -5,6 +5,8 @@ import (
 
 	"github.com/PIGcanstudy/gorder/stock/entity"
 	"github.com/PIGcanstudy/gorder/stock/infrastructure/persistent"
+	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type MySQLStockRepository struct {
@@ -33,4 +35,66 @@ func (m MySQLStockRepository) GetStock(ctx context.Context, ids []string) ([]*en
 		})
 	}
 	return result, nil
+}
+
+// 删减库存函数
+func (m MySQLStockRepository) UpdateStock(
+	ctx context.Context,
+	data []*entity.ItemWithQuantity,
+	updateFn func(
+		ctx context.Context,
+		existing []*entity.ItemWithQuantity,
+		query []*entity.ItemWithQuantity,
+	) ([]*entity.ItemWithQuantity, error),
+) error {
+	// 开启事务（开启事务的原因是保证数据的一致性）
+	return m.db.StartTransaction(func(tx *gorm.DB) (err error) {
+		defer func() {
+			if err != nil {
+				logrus.Warnf("update stock transaction err=%v", err)
+			}
+		}()
+		var dest []*persistent.StockModel
+		// 根据产品id列表获取对应库存数据列表
+		if err = tx.Table("o_stock").Where("product_id IN ?", getIDFromEntities(data)).Find(&dest).Error; err != nil {
+			return err
+		}
+		// 反序化数据库数据为[]*entity.ItemWithQuantity形式
+		existing := m.unmarshalFromDatabase(dest)
+
+		// 执行更新数据逻辑
+		updated, err := updateFn(ctx, existing, data)
+
+		if err != nil {
+			return err
+		}
+
+		// 将数据更新到数据库中
+		for _, upd := range updated {
+			if err = tx.Table("o_stock").Where("product_id = ?", upd.ID).Update("quantity", upd.Quantity).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// 将库存数据反序化为[]*entity.ItemWithQuantity形式
+func (m MySQLStockRepository) unmarshalFromDatabase(dest []*persistent.StockModel) []*entity.ItemWithQuantity {
+	var result []*entity.ItemWithQuantity
+	for _, i := range dest {
+		result = append(result, &entity.ItemWithQuantity{
+			ID:       i.ProductID,
+			Quantity: i.Quantity,
+		})
+	}
+	return result
+}
+
+func getIDFromEntities(items []*entity.ItemWithQuantity) []string {
+	var ids []string
+	for _, i := range items {
+		ids = append(ids, i.ID)
+	}
+	return ids
 }
