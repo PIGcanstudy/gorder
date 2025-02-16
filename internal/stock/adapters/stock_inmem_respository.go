@@ -4,17 +4,17 @@ import (
 	"context"
 	"sync"
 
-	"github.com/PIGcanstudy/gorder/common/genproto/orderpb"
 	domain "github.com/PIGcanstudy/gorder/stock/domain/stock"
+	"github.com/PIGcanstudy/gorder/stock/entity"
 )
 
 type MemoryStockRepository struct {
 	lock  *sync.RWMutex
-	store map[string]*orderpb.Item
+	store map[string]*entity.Item
 }
 
 // 假设里面存储了item_id
-var stub = map[string]*orderpb.Item{
+var stub = map[string]*entity.Item{
 	"item_id": {
 		ID:       "foo_item",
 		Name:     "stub item",
@@ -47,12 +47,12 @@ func NewMemoryOrderRepository() *MemoryStockRepository {
 		store: stub,
 	}
 }
-func (m MemoryStockRepository) GetItems(ctx context.Context, ids []string) ([]*orderpb.Item, error) {
+func (m MemoryStockRepository) GetItems(ctx context.Context, ids []string) ([]*entity.Item, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	var (
-		res     []*orderpb.Item // 找到的订单数据
-		missing []string        // 未找到的订单id
+		res     []*entity.Item // 找到的订单数据
+		missing []string       // 未找到的订单id
 	)
 	for _, id := range ids {
 		if item, exist := m.store[id]; exist {

@@ -8,11 +8,14 @@ import (
 	"github.com/PIGcanstudy/gorder/stock/app"
 	"github.com/PIGcanstudy/gorder/stock/app/query"
 	"github.com/PIGcanstudy/gorder/stock/infrastructure/integration"
+	"github.com/PIGcanstudy/gorder/stock/infrastructure/persistent"
 	"github.com/sirupsen/logrus"
 )
 
 func NewApplication(ctx context.Context) app.Application {
-	stockRepo := adapters.NewMemoryOrderRepository()
+	//stockRepo := adapters.NewMemoryOrderRepository()
+	db := persistent.NewMySQL()
+	stockRepo := adapters.NewMySQLStockRepository(db)
 	stripeAPI := integration.NewStripeAPI()
 	logger := logrus.NewEntry(logrus.StandardLogger())
 	metricClient := metrics.TodoMetrics{}

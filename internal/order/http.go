@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/PIGcanstudy/gorder/common"
@@ -29,6 +30,10 @@ func (server HTTPServer) PostCustomerCustomerIdOrders(c *gin.Context, customerId
 	}()
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		return
+	}
+
+	if err = server.validate(req); err != nil {
 		return
 	}
 
@@ -66,4 +71,14 @@ func (server HTTPServer) GetCustomerCustomerIdOrdersOrderId(c *gin.Context, cust
 	}
 
 	resp = convertor.NewOrderConvertor().EntityToClient(o)
+}
+
+// 验证请求信息的数量是否出错了
+func (H HTTPServer) validate(req client.CreateOrderRequest) error {
+	for _, v := range req.Items {
+		if v.Quantity <= 0 {
+			return errors.New("quantity must be positive")
+		}
+	}
+	return nil
 }

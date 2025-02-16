@@ -7,6 +7,7 @@ import (
 	"github.com/PIGcanstudy/gorder/common/tracing"
 	"github.com/PIGcanstudy/gorder/stock/app"
 	"github.com/PIGcanstudy/gorder/stock/app/query"
+	"github.com/PIGcanstudy/gorder/stock/convertor"
 )
 
 type GRPCServer struct {
@@ -27,16 +28,21 @@ func (s GRPCServer) GetItems(ctx context.Context, request *stockpb.GetItemsReque
 		return nil, err
 	}
 
-	return &stockpb.GetItemsResponse{Items: items}, nil
+	return &stockpb.GetItemsResponse{Items: convertor.NewItemConvertor().EntitiesToProtos(items)}, nil
 }
 
 func (s GRPCServer) CheckIfItemsInStock(ctx context.Context, request *stockpb.CheckIfItemsInStockRequest) (*stockpb.CheckIfItemsInStockResponse, error) {
 	_, span := tracing.Start(ctx, "CheckIfItemsInStock")
 	defer span.End()
 
-	items, err := s.app.Queries.CheckIfItemsInStock.Handle(ctx, query.CheckIfItemsInStock{Items: request.Items})
+	items, err := s.app.Queries.CheckIfItemsInStock.Handle(ctx, query.CheckIfItemsInStock{
+		Items: convertor.NewItemWithQuantityConvertor().ProtosToEntities(request.Items),
+	})
 	if err != nil {
 		return nil, err
 	}
-	return &stockpb.CheckIfItemsInStockResponse{Items: items, InStock: 1}, nil
+	return &stockpb.CheckIfItemsInStockResponse{
+		InStock: 1,
+		Items:   convertor.NewItemConvertor().EntitiesToProtos(items),
+	}, nil
 }

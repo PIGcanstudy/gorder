@@ -119,7 +119,6 @@ func (c createOrderHandler) validate(ctx context.Context, items []*entity.ItemWi
 	}
 	// 将前端传来的数据中重复的部分合并
 	items = packItems(items)
-
 	// 检验库存是否足够
 	resp, err := c.stockGRPC.CheckIfItemsInStock(ctx, convertor.NewItemWithQuantityConvertor().EntitiesToProtos(items))
 	if err != nil {
