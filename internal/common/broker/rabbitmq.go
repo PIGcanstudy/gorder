@@ -21,6 +21,8 @@ var (
 	maxRetryCount = viper.GetInt64("rabbitmq.max-retry")
 )
 
+// 将重试的次数放入到消息的header中，然后加入到context中，方便同步重试次数，同时把span相关信息也放到header中，方便追踪
+
 // 连接rabbitmq
 func ConnectRabbitMQ(user, password, host, port string) (*amqp.Channel, func() error) {
 	// 拼接服务地址
