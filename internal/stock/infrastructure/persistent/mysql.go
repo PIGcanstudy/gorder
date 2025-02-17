@@ -15,6 +15,10 @@ type MySQL struct {
 	db *gorm.DB
 }
 
+func NewMySQLWithDB(db *gorm.DB) *MySQL {
+	return &MySQL{db: db}
+}
+
 func NewMySQL() *MySQL {
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
@@ -35,12 +39,17 @@ type StockModel struct {
 	ID        int64     `gorm:"column:id"`
 	ProductID string    `gorm:"column:product_id"`
 	Quantity  int32     `gorm:"column:quantity"`
-	CreatedAt time.Time `gorm:"column:created_at"`
-	UpdateAt  time.Time `gorm:"column:updated_at"`
+	CreatedAt time.Time `gorm:"column:created_at autoCreateTime"`
+	UpdateAt  time.Time `gorm:"column:updated_at autoUpdateTime"`
 }
 
 func (StockModel) TableName() string {
 	return "o_stock"
+}
+
+func (m *StockModel) BeforeCreate(tx *gorm.DB) (err error) {
+	m.UpdateAt = time.Now()
+	return nil
 }
 
 func (d MySQL) StartTransaction(fc func(tx *gorm.DB) error) error {
@@ -54,4 +63,8 @@ func (d MySQL) BatchGetStockByID(ctx context.Context, productIDs []string) ([]St
 		return nil, tx.Error
 	}
 	return result, nil
+}
+
+func (d MySQL) Create(ctx context.Context, create *StockModel) error {
+	return d.db.WithContext(ctx).Create(create).Error
 }

@@ -1,12 +1,13 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/PIGcanstudy/gorder/common"
 	client "github.com/PIGcanstudy/gorder/common/client/order"
+	"github.com/PIGcanstudy/gorder/common/consts"
 	"github.com/PIGcanstudy/gorder/common/convertor"
+	"github.com/PIGcanstudy/gorder/common/handler/errors"
 	"github.com/PIGcanstudy/gorder/order/app"
 	"github.com/PIGcanstudy/gorder/order/app/command"
 	"github.com/PIGcanstudy/gorder/order/app/dto"
@@ -30,10 +31,12 @@ func (server HTTPServer) PostCustomerCustomerIdOrders(c *gin.Context, customerId
 	}()
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		err = errors.NewWithError(consts.ErrnoBindRequestError, err)
 		return
 	}
 
 	if err = server.validate(req); err != nil {
+		err = errors.NewWithError(consts.ErrnoRequestValidateError, err)
 		return
 	}
 
@@ -77,7 +80,7 @@ func (server HTTPServer) GetCustomerCustomerIdOrdersOrderId(c *gin.Context, cust
 func (H HTTPServer) validate(req client.CreateOrderRequest) error {
 	for _, v := range req.Items {
 		if v.Quantity <= 0 {
-			return errors.New("quantity must be positive")
+			return fmt.Errorf("quantity must be positive, got %d from %s", v.Quantity, v.Id)
 		}
 	}
 	return nil

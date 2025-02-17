@@ -10,6 +10,7 @@ import (
 	domain "github.com/PIGcanstudy/gorder/stock/domain/stock"
 	"github.com/PIGcanstudy/gorder/stock/entity"
 	"github.com/PIGcanstudy/gorder/stock/infrastructure/integration"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -59,7 +60,7 @@ func (h checkIfItemsInStockHandler) Handle(ctx context.Context, query CheckIfIte
 	// 检验库存是否足够
 	// 获取分布式锁（保证同一时间只有一个请求操作库存）
 	if err := lock(ctx, getLockKey(query)); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "redis lock error: key=%s", getLockKey(query))
 	}
 	defer func() {
 		if err := unlock(ctx, getLockKey(query)); err != nil {
@@ -79,7 +80,6 @@ func (h checkIfItemsInStockHandler) Handle(ctx context.Context, query CheckIfIte
 			PriceID:  priceID,
 		})
 	}
-	// TODO: 扣库存
 	if err := h.checkStock(ctx, query.Items); err != nil {
 		return nil, err
 	}

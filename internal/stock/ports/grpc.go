@@ -8,6 +8,8 @@ import (
 	"github.com/PIGcanstudy/gorder/stock/app"
 	"github.com/PIGcanstudy/gorder/stock/app/query"
 	"github.com/PIGcanstudy/gorder/stock/convertor"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type GRPCServer struct {
@@ -25,7 +27,7 @@ func (s GRPCServer) GetItems(ctx context.Context, request *stockpb.GetItemsReque
 	// 获取所有对应的items
 	items, err := s.app.Queries.GetItems.Handle(ctx, query.GetItems{ItemIDs: request.ItemIDs})
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &stockpb.GetItemsResponse{Items: convertor.NewItemConvertor().EntitiesToProtos(items)}, nil
@@ -39,7 +41,7 @@ func (s GRPCServer) CheckIfItemsInStock(ctx context.Context, request *stockpb.Ch
 		Items: convertor.NewItemWithQuantityConvertor().ProtosToEntities(request.Items),
 	})
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return &stockpb.CheckIfItemsInStockResponse{
 		InStock: 1,

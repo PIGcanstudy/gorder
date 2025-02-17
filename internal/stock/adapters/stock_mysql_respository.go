@@ -5,6 +5,7 @@ import (
 
 	"github.com/PIGcanstudy/gorder/stock/entity"
 	"github.com/PIGcanstudy/gorder/stock/infrastructure/persistent"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -25,7 +26,8 @@ func (m MySQLStockRepository) GetItems(ctx context.Context, ids []string) ([]*en
 func (m MySQLStockRepository) GetStock(ctx context.Context, ids []string) ([]*entity.ItemWithQuantity, error) {
 	data, err := m.db.BatchGetStockByID(ctx, ids)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "BatchGetStockByID error")
+
 	}
 	var result []*entity.ItemWithQuantity
 	for _, d := range data {
@@ -57,7 +59,7 @@ func (m MySQLStockRepository) UpdateStock(
 		var dest []*persistent.StockModel
 		// 根据产品id列表获取对应库存数据列表
 		if err = tx.Table("o_stock").Where("product_id IN ?", getIDFromEntities(data)).Find(&dest).Error; err != nil {
-			return err
+			return errors.Wrap(err, "failed to find data")
 		}
 		// 反序化数据库数据为[]*entity.ItemWithQuantity形式
 		existing := m.unmarshalFromDatabase(dest)
@@ -72,7 +74,7 @@ func (m MySQLStockRepository) UpdateStock(
 		// 将数据更新到数据库中
 		for _, upd := range updated {
 			if err = tx.Table("o_stock").Where("product_id = ?", upd.ID).Update("quantity", upd.Quantity).Error; err != nil {
-				return err
+				return errors.Wrapf(err, "unable to update %s", upd.ID)
 			}
 		}
 		return nil
