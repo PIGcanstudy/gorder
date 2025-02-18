@@ -5,10 +5,10 @@ import (
 
 	"github.com/PIGcanstudy/gorder/stock/entity"
 	"github.com/PIGcanstudy/gorder/stock/infrastructure/persistent"
+	"github.com/PIGcanstudy/gorder/stock/infrastructure/persistent/builder"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type MySQLStockRepository struct {
@@ -25,7 +25,7 @@ func (m MySQLStockRepository) GetItems(ctx context.Context, ids []string) ([]*en
 }
 
 func (m MySQLStockRepository) GetStock(ctx context.Context, ids []string) ([]*entity.ItemWithQuantity, error) {
-	data, err := m.db.BatchGetStockByID(ctx, ids)
+	data, err := m.db.BatchGetStockByID(ctx, builder.NewStock().ProductIDs(ids...))
 	if err != nil {
 		return nil, errors.Wrap(err, "BatchGetStockByID error")
 
@@ -70,25 +70,22 @@ func (m MySQLStockRepository) updateOptimistic(
 	data []*entity.ItemWithQuantity,
 	updateFn func(ctx context.Context, existing []*entity.ItemWithQuantity, query []*entity.ItemWithQuantity,
 	) ([]*entity.ItemWithQuantity, error)) error {
-	var dest []*persistent.StockModel
-	if err := tx.Model(&persistent.StockModel{}).
-		Where("product_id IN (?)", getIDFromEntities(data)).
-		Find(&dest).Error; err != nil {
-		return errors.Wrap(err, "failed to find data")
-	}
-
 	for _, queryData := range data {
-		var newestRecord persistent.StockModel
-		if err := tx.Model(&persistent.StockModel{}).Where("product_id = ?", queryData.ID).
-			First(&newestRecord).Error; err != nil {
+		var newestRecord *persistent.StockModel
+		newestRecord, err := m.db.GetStockByID(ctx, builder.NewStock().ProductIDs(queryData.ID))
+		// 在即将更新前查出库存表的最新记录
+		if err != nil {
 			return err
 		}
-		if err := tx.Model(&persistent.StockModel{}).
-			Where("product_id = ? AND version = ? AND quantity - ? >= 0", queryData.ID, newestRecord.Version, queryData.Quantity).
-			Updates(map[string]any{
+		// 将一开始查询得到的记录和即将更新前查出的库存表的最新记录的版本号进行比较
+		if err = m.db.Update(
+			ctx,
+			tx,
+			builder.NewStock().ProductIDs(queryData.ID).Versions(newestRecord.Version).QuantityGT(queryData.Quantity),
+			map[string]any{
 				"quantity": gorm.Expr("quantity - ?", queryData.Quantity),
 				"version":  newestRecord.Version + 1,
-			}).Error; err != nil {
+			}); err != nil {
 			return err
 		}
 	}
@@ -103,13 +100,10 @@ func (m MySQLStockRepository) updatePessimistic(
 	data []*entity.ItemWithQuantity,
 	updateFn func(ctx context.Context, existing []*entity.ItemWithQuantity, query []*entity.ItemWithQuantity,
 	) ([]*entity.ItemWithQuantity, error)) error {
-	var dest []*persistent.StockModel
 	// 找出与产品id对应的所有产品并加上forUpdate锁
-	if err := tx.Table("o_stock").
-		Clauses(clause.Locking{Strength: clause.LockingStrengthUpdate}).
-		Where("product_id IN (?)", getIDFromEntities(data)).
-		Find(&dest).Error; err != nil {
-
+	var dest []persistent.StockModel
+	dest, err := m.db.BatchGetStockByID(ctx, builder.NewStock().ProductIDs(getIDFromEntities(data)...).ForUpdate())
+	if err != nil {
 		return errors.Wrap(err, "failed to find data")
 	}
 
@@ -121,21 +115,21 @@ func (m MySQLStockRepository) updatePessimistic(
 
 	for _, upd := range updated {
 		for _, query := range data {
-			if upd.ID == query.ID {
-				// 执行更新逻辑
-				if err = tx.Table("o_stock").Where("product_id = ? AND quantity - ? >= 0", upd.ID, query.Quantity).
-					Update("quantity", gorm.Expr("quantity - ?", query.Quantity)).Error; err != nil {
-					return errors.Wrapf(err, "unable to update %s", upd.ID)
-				}
+			if upd.ID != query.ID {
+				continue
+			}
+			// 执行更新逻辑
+			if err = m.db.Update(ctx, tx, builder.NewStock().ProductIDs(upd.ID).QuantityGT(query.Quantity),
+				map[string]any{"quantity": gorm.Expr("quantity - ?", query.Quantity)}); err != nil {
+				return errors.Wrapf(err, "unable to update %s", upd.ID)
 			}
 		}
-
 	}
 	return nil
 }
 
 // 将库存数据反序化为[]*entity.ItemWithQuantity形式
-func (m MySQLStockRepository) unmarshalFromDatabase(dest []*persistent.StockModel) []*entity.ItemWithQuantity {
+func (m MySQLStockRepository) unmarshalFromDatabase(dest []persistent.StockModel) []*entity.ItemWithQuantity {
 	var result []*entity.ItemWithQuantity
 	for _, i := range dest {
 		result = append(result, &entity.ItemWithQuantity{

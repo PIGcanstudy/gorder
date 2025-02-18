@@ -4,10 +4,10 @@ package logging
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 	"time"
 
+	"github.com/PIGcanstudy/gorder/common/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,6 +18,10 @@ const (
 	Response = "response"
 	Error    = "err"
 )
+
+type ArgFormatter interface {
+	FormatArg() (string, error)
+}
 
 // ...any 在底层会把接收到的any放到一个切片上
 // 放回logrus.Fields类型，以及一个函数，这个函数是用来将查询结果和错误放入传进来的fields中，并输出到日志中
@@ -52,14 +56,21 @@ func formatMySQLArgs(args []any) string {
 
 // 此函数功能是把any转换为json string类型
 func formatMySQLArg(arg any) string {
+	var (
+		str string
+		err error
+	)
+	defer func() {
+		if err != nil {
+			str = "unsupported type in formatMySQLArg||err=" + err.Error()
+		}
+	}()
 	switch v := arg.(type) {
 	default:
 		// 序列化为Json
-		bytes, err := json.Marshal(v)
-		if err != nil {
-			return "unsupported type in formatMySQLArg||err=" + err.Error()
-		}
-		// 转换为Json字符串
-		return string(bytes)
+		str, err = util.MarshalString(v)
+	case ArgFormatter:
+		str, err = v.FormatArg()
 	}
+	return str
 }

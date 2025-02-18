@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/PIGcanstudy/gorder/common/logging"
+	"github.com/PIGcanstudy/gorder/stock/infrastructure/persistent/builder"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
@@ -55,15 +56,42 @@ func (m *StockModel) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
+func (d MySQL) GetStockByID(ctx context.Context, query *builder.Stock) (*StockModel, error) {
+	_, deferLog := logging.WhenMySQL(ctx, "GetStockByID", query)
+	var result StockModel
+	tx := query.Fill(d.db.WithContext(ctx)).First(&result)
+	defer deferLog(result, &tx.Error)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+	return &result, nil
+}
+
+// 如果使用了事务就返回事务的tx，否则返回db
+func (d *MySQL) UseTransaction(tx *gorm.DB) *gorm.DB {
+	if tx == nil {
+		return d.db
+	}
+	return tx
+}
+
+func (d MySQL) Update(ctx context.Context, tx *gorm.DB, cond *builder.Stock, update map[string]any) error {
+	_, deferLog := logging.WhenMySQL(ctx, "BatchUpdateStock", cond)
+	var returning StockModel
+	res := cond.Fill(d.UseTransaction(tx).WithContext(ctx).Model(&returning).Clauses(clause.Returning{})).Updates(update)
+	defer deferLog(returning, &res.Error)
+	return res.Error
+}
+
 func (d MySQL) StartTransaction(fc func(tx *gorm.DB) error) error {
 	return d.db.Transaction(fc)
 }
 
-// 获取库存
-func (d MySQL) BatchGetStockByID(ctx context.Context, productIDs []string) ([]StockModel, error) {
-	_, deferLog := logging.WhenMySQL(ctx, "BatchGetStockByID", productIDs)
+// 获取库存(将查询条件全部收敛到builder上)
+func (d MySQL) BatchGetStockByID(ctx context.Context, query *builder.Stock) ([]StockModel, error) {
+	_, deferLog := logging.WhenMySQL(ctx, "BatchGetStockByID", query)
 	var result []StockModel
-	tx := d.db.WithContext(ctx).Clauses(clause.Returning{}).Where("product_id IN ?", productIDs).Find(&result)
+	tx := query.Fill(d.db.WithContext(ctx).Clauses(clause.Returning{}).Find(&result))
 	defer deferLog(result, &tx.Error)
 
 	if tx.Error != nil {
@@ -72,7 +100,7 @@ func (d MySQL) BatchGetStockByID(ctx context.Context, productIDs []string) ([]St
 	return result, nil
 }
 
-func (d MySQL) Create(ctx context.Context, create *StockModel) error {
+func (d MySQL) Create(ctx context.Context, tx *gorm.DB, create *StockModel) error {
 	_, deferLog := logging.WhenMySQL(ctx, "Create", create)
 	var returning StockModel
 	err := d.db.WithContext(ctx).Model(&returning).Clauses(clause.Returning{}).Create(create).Error
