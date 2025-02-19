@@ -14,9 +14,9 @@ import (
 const (
 	Method   = "method"
 	Args     = "args"
-	Cost     = "cost_ms"
+	Cost     = "cost_ms" // 耗时
 	Response = "response"
-	Error    = "err"
+	Error    = "error"
 )
 
 type ArgFormatter interface {
@@ -28,7 +28,7 @@ type ArgFormatter interface {
 func WhenMySQL(ctx context.Context, method string, args ...any) (logrus.Fields, func(any, *error)) {
 	fields := logrus.Fields{
 		Method: method,
-		Args:   formatMySQLArgs(args),
+		Args:   formatArgs(args),
 	}
 	start := time.Now()
 	return fields, func(resp any, err *error) {
@@ -41,21 +41,21 @@ func WhenMySQL(ctx context.Context, method string, args ...any) (logrus.Fields, 
 			fields[Error] = (*err).Error()
 		}
 
-		logrus.WithContext(ctx).WithFields(fields).Logf(level, "%s", msg)
+		logf(ctx, level, fields, "%s", msg)
 	}
 }
 
-func formatMySQLArgs(args []any) string {
+func formatArgs(args []any) string {
 	var item []string
 	for _, arg := range args {
-		item = append(item, formatMySQLArg(arg))
+		item = append(item, formatArg(arg))
 	}
 	// 将切片中的元素用"||"连接，拼成一个字符串
 	return strings.Join(item, "||")
 }
 
 // 此函数功能是把any转换为json string类型
-func formatMySQLArg(arg any) string {
+func formatArg(arg any) string {
 	var (
 		str string
 		err error

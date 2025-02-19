@@ -47,6 +47,7 @@ func Start(ctx context.Context, name string) (context.Context, trace.Span) {
 	return tracer.Start(ctx, name)
 }
 
+// 从context中获取traceID
 func TraceID(ctx context.Context) string {
 	spanCtx := trace.SpanContextFromContext(ctx)
 	return spanCtx.TraceID().String()

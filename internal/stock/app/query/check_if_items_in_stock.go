@@ -7,6 +7,7 @@ import (
 
 	"github.com/PIGcanstudy/gorder/common/decorator"
 	"github.com/PIGcanstudy/gorder/common/handler/redis"
+	"github.com/PIGcanstudy/gorder/common/logging"
 	domain "github.com/PIGcanstudy/gorder/stock/domain/stock"
 	"github.com/PIGcanstudy/gorder/stock/entity"
 	"github.com/PIGcanstudy/gorder/stock/infrastructure/integration"
@@ -64,7 +65,7 @@ func (h checkIfItemsInStockHandler) Handle(ctx context.Context, query CheckIfIte
 	}
 	defer func() {
 		if err := unlock(ctx, getLockKey(query)); err != nil {
-			logrus.Warnf("redis unlock fail, err=%v", err)
+			logging.Warnf(ctx, nil, "redis unlock fail, err=%v", err)
 		}
 	}()
 
@@ -155,7 +156,6 @@ func (h checkIfItemsInStockHandler) checkStock(ctx context.Context, query []*ent
 			}
 			return newItems, nil
 		})
-		return nil
 	}
 	return domain.ExceedStockError{FailedOn: failedOn}
 }

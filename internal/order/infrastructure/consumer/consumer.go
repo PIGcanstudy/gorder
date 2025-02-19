@@ -6,9 +6,11 @@ import (
 	"fmt"
 
 	"github.com/PIGcanstudy/gorder/common/broker"
+	"github.com/PIGcanstudy/gorder/common/logging"
 	"github.com/PIGcanstudy/gorder/order/app"
 	"github.com/PIGcanstudy/gorder/order/app/command"
 	domain "github.com/PIGcanstudy/gorder/order/domain/order"
+	"github.com/pkg/errors"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
@@ -59,26 +61,25 @@ func (c *Consumer) Listen(ch *amqp.Channel) {
 
 // 处理支付消息
 func (c *Consumer) handleMessage(ch *amqp.Channel, msg amqp.Delivery, q amqp.Queue) {
-	logrus.Infof("Order receive a message from %s, msg=%v", q.Name, string(msg.Body))
-
-	ctx := broker.ExtractRabbitMQHeaders(context.Background(), msg.Headers)
-	t := otel.Tracer("rabbitmq")
-	_, span := t.Start(ctx, fmt.Sprintf("rabbitmq.%s.consume", q.Name))
+	tr := otel.Tracer("rabbitmq")
+	ctx, span := tr.Start(broker.ExtractRabbitMQHeaders(context.Background(), msg.Headers), fmt.Sprintf("rabbitmq.%s.consume", q.Name))
 	defer span.End()
 
 	var err error
 	defer func() {
 		if err != nil {
+			logging.Warnf(ctx, nil, "consume failed||from=%s||msg=%+v||err=%v", q.Name, msg, err)
 			_ = msg.Nack(false, false)
 		} else {
-			_ = msg.Ack(false) // 确认消息已经被消费
+			logging.Infof(ctx, nil, "%s", "consume success")
+			_ = msg.Ack(false) // 确认消息以及被消费
 		}
 	}()
 
 	o := &domain.Order{}
 	// 反序列化消息
 	if err = json.Unmarshal(msg.Body, o); err != nil {
-		logrus.Infof("failed to unmarshall msg to order, err=%v", err)
+		err = errors.Wrap(err, "error unmarshal msg.body into domain.order")
 		return
 	}
 
@@ -94,14 +95,12 @@ func (c *Consumer) handleMessage(ch *amqp.Channel, msg amqp.Delivery, q amqp.Que
 	})
 
 	if err != nil {
-		logrus.Infof("error updating order, orderID = %s, err = %v", o.ID, err)
+		logging.Errorf(ctx, nil, "error updating order||orderID=%s||err=%v", o.ID, err)
 		if err = broker.HandleRetry(ctx, ch, &msg); err != nil {
-			logrus.Warnf("retry_error, error handling retry, messageID=%s, err=%v", msg.MessageId, err)
+			err = errors.Wrapf(err, "retry_error, error handling retry, messageID=%s||err=%v", msg.MessageId, err)
 		}
 		return
 	}
 
 	span.AddEvent("order.updated")
-
-	logrus.Info("consume success")
 }

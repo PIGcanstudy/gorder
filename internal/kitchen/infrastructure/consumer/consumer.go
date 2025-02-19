@@ -3,12 +3,14 @@ package consumer
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/PIGcanstudy/gorder/common/broker"
 	"github.com/PIGcanstudy/gorder/common/genproto/orderpb"
+	"github.com/PIGcanstudy/gorder/common/logging"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
@@ -59,30 +61,33 @@ func (c *Consumer) Listen(ch *amqp.Channel) {
 }
 
 func (c *Consumer) handleMessage(ch *amqp.Channel, msg amqp.Delivery, q amqp.Queue) {
-	var err error
-	logrus.Infof("kitchen receive a message from %s, msg=%v", q.Name, string(msg.Body))
-	ctx := broker.ExtractRabbitMQHeaders(context.Background(), msg.Headers)
 	tr := otel.Tracer("rabbitmq")
+	ctx, span := tr.Start(broker.ExtractRabbitMQHeaders(context.Background(), msg.Headers), fmt.Sprintf("rabbitmq.%s.consume", q.Name))
+	defer span.End()
+
+	var err error
 	mqCtx, span := tr.Start(ctx, fmt.Sprintf("rabbitmq.%s.consume", q.Name))
 	defer func() {
 		span.End()
 		if err != nil {
+			logging.Warnf(ctx, nil, "consume failed||from=%s||msg=%+v||err=%v", q.Name, msg, err)
 			_ = msg.Nack(false, false)
 		} else {
+			logging.Infof(ctx, nil, "%s", "consume success")
 			_ = msg.Ack(false)
 		}
 	}()
 
 	o := &Order{}
-	if err := json.Unmarshal(msg.Body, o); err != nil {
-		logrus.Infof("failed to unmarshall msg to order, err=%v", err)
+	if err = json.Unmarshal(msg.Body, o); err != nil {
+		err = errors.Wrap(err, "error unmarshal msg.body into order")
 		return
 	}
 	if o.Status != "paid" {
 		err = errors.New("order not paid, cannot cook")
 		return
 	}
-	cook(o)
+	cook(ctx, o)
 	span.AddEvent(fmt.Sprintf("order_cook: %v", o))
 	if err := c.orderGRPC.UpdateOrder(mqCtx, &orderpb.Order{
 		ID:          o.ID,
@@ -91,18 +96,17 @@ func (c *Consumer) handleMessage(ch *amqp.Channel, msg amqp.Delivery, q amqp.Que
 		Items:       o.Items,
 		PaymentLink: o.PaymentLink,
 	}); err != nil {
-		if err = broker.HandleRetry(mqCtx, ch, &msg); err != nil {
-			logrus.Warnf("kitchen: error handling retry: err=%v", err)
+		logging.Errorf(ctx, nil, "error updating order||orderID=%s||err=%v", o.ID, err)
+		if err = broker.HandleRetry(ctx, ch, &msg); err != nil {
+			err = errors.Wrapf(err, "retry_error, error handling retry, messageID=%s||err=%v", msg.MessageId, err)
 		}
-		return
 	}
 	span.AddEvent("kitchen.order.finished.updated")
-	logrus.Info("consume success")
 }
 
 // 模拟烹饪过程
-func cook(o *Order) {
-	logrus.Printf("cooking order: %s", o.ID)
+func cook(ctx context.Context, o *Order) {
+	logrus.WithContext(ctx).Printf("cooking order: %s", o.ID)
 	time.Sleep(5 * time.Second)
-	logrus.Printf("order %s done!", o.ID)
+	logrus.WithContext(ctx).Printf("order %s done!", o.ID)
 }

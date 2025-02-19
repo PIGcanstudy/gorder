@@ -2,13 +2,13 @@ package command
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/PIGcanstudy/gorder/common/broker"
 	"github.com/PIGcanstudy/gorder/common/convertor"
 	"github.com/PIGcanstudy/gorder/common/decorator"
 	"github.com/PIGcanstudy/gorder/common/entity"
+	"github.com/PIGcanstudy/gorder/common/logging"
 	"github.com/PIGcanstudy/gorder/order/app/query"
 	domain "github.com/PIGcanstudy/gorder/order/domain/order"
 	"github.com/pkg/errors"
@@ -64,15 +64,13 @@ func NewCreateOrderHandler(
 }
 
 func (h createOrderHandler) Handle(ctx context.Context, cmd CreateOrder) (*CreateOrderResult, error) {
+	var err error
+	defer logging.WhenCommandExecute(ctx, "CreateOrderHandler", cmd, err)
 
 	// 首先需要创建消息队列
-	q, err := h.channel.QueueDeclare(broker.EventOrderCreated, true, false, false, false, nil)
-	if err != nil {
-		return nil, err
-	}
 
 	t := otel.Tracer("rabbitmq")
-	ctx, span := t.Start(ctx, fmt.Sprintf("rabbitmq.%s.publish", q.Name))
+	ctx, span := t.Start(ctx, fmt.Sprintf("rabbitmq.%s.publish", broker.EventOrderCreated))
 	defer span.End()
 	// 验证数据
 	validItems, err := h.validate(ctx, cmd.Items)
@@ -91,22 +89,17 @@ func (h createOrderHandler) Handle(ctx context.Context, cmd CreateOrder) (*Creat
 	// 开始向RabbitMQ发送消息
 
 	// 序列化要发送的订单消息
-	marshalledOrder, err := json.Marshal(order)
-	if err != nil {
-		return nil, err
-	}
-
-	header := broker.InjectRabbitMQHeaders(ctx)
-
 	// 发布一个消息到exchange，并指定队列的name
-	err = h.channel.PublishWithContext(ctx, "", q.Name, false, false, amqp.Publishing{
-		ContentType:  "application/json",
-		DeliveryMode: amqp.Persistent, // 消息持久化
-		Body:         marshalledOrder,
-		Headers:      header,
+	err = broker.PublishEvent(ctx, broker.PublishEventReq{
+		Channel:  h.channel,
+		Routing:  broker.Direct,
+		Queue:    broker.EventOrderCreated,
+		Exchange: "",
+		Body:     order,
 	})
+
 	if err != nil {
-		return nil, errors.Wrapf(err, "publish event error q.Name=%s", q.Name)
+		return nil, errors.Wrapf(err, "publish event error q.Name=%s", broker.EventOrderCreated)
 	}
 
 	return &CreateOrderResult{

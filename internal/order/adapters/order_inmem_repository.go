@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PIGcanstudy/gorder/common/logging"
 	domain "github.com/PIGcanstudy/gorder/order/domain/order"
-	"github.com/sirupsen/logrus"
 )
 
 type MemoryOrderRepository struct {
@@ -17,14 +17,15 @@ type MemoryOrderRepository struct {
 
 func NewMemortOrderRepository() *MemoryOrderRepository {
 	// 测试用
-	s := make([]*domain.Order, 0)
-	s = append(s, &domain.Order{
-		ID:          "fake-ID",
-		CustomerID:  "fake-customerID",
-		Status:      "fake-status",
-		PaymentLink: "fake-paymentLink",
-		Items:       nil,
-	})
+	s := []*domain.Order{
+		{
+			ID:          "fake-ID",
+			CustomerID:  "fake-customer-id",
+			Status:      "fake-status",
+			PaymentLink: "fake-payment-link",
+			Items:       nil,
+		},
+	}
 
 	return &MemoryOrderRepository{
 		lock:  &sync.RWMutex{},
@@ -33,7 +34,9 @@ func NewMemortOrderRepository() *MemoryOrderRepository {
 }
 
 // 往内存中创建一个order
-func (m *MemoryOrderRepository) Create(_ context.Context, order *domain.Order) (*domain.Order, error) {
+func (m *MemoryOrderRepository) Create(ctx context.Context, order *domain.Order) (created *domain.Order, err error) {
+	_, deferLog := logging.WhenRequest(ctx, "MemoryOrderRepository.Create", map[string]any{"order": order})
+	defer deferLog(created, &err)
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	newOrder := &domain.Order{
@@ -43,27 +46,21 @@ func (m *MemoryOrderRepository) Create(_ context.Context, order *domain.Order) (
 		PaymentLink: order.PaymentLink,
 		Items:       order.Items,
 	}
-	m.store = append(m.store, newOrder)
-	logrus.WithFields(logrus.Fields{
-		"input_order":        order,
-		"store_after_create": m.store,
-	}).Info("memory_order_repo_create")
 	return newOrder, nil
 }
 
 // 通过customerID与id从内存中获取一个order
-func (m *MemoryOrderRepository) Get(_ context.Context, id, customerID string) (*domain.Order, error) {
-	// 打印出所有的order
-	for i, v := range m.store {
-		logrus.Infof("m.store[%d] = %+v", i, v)
-	}
-
+func (m *MemoryOrderRepository) Get(ctx context.Context, id, customerID string) (got *domain.Order, err error) {
+	_, deferLog := logging.WhenRequest(ctx, "MemoryOrderRepository.Get", map[string]any{
+		"id":         id,
+		"customerID": customerID,
+	})
+	defer deferLog(got, &err)
 	// 读加锁
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	for _, o := range m.store {
 		if o.ID == id && o.CustomerID == customerID {
-			logrus.Infof("memory_order_repo_get||found||id=%s||customerID=%s||res=%+v", id, customerID, *o)
 			return o, nil
 		}
 	}
@@ -71,7 +68,16 @@ func (m *MemoryOrderRepository) Get(_ context.Context, id, customerID string) (*
 }
 
 // 更新store中的某个order
-func (m *MemoryOrderRepository) Update(ctx context.Context, order *domain.Order, updateFn func(context.Context, *domain.Order) (*domain.Order, error)) error {
+func (m *MemoryOrderRepository) Update(
+	ctx context.Context,
+	order *domain.Order,
+	updateFn func(context.Context, *domain.Order) (*domain.Order, error),
+) (err error) {
+	_, deferLog := logging.WhenRequest(ctx, "MemoryOrderRepository.Update", map[string]any{
+		"order": order,
+	})
+	defer deferLog(nil, &err)
+
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	found := false

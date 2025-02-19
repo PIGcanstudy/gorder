@@ -3,6 +3,7 @@ package server
 import (
 	"net"
 
+	"github.com/PIGcanstudy/gorder/common/logging"
 	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	grpc_tags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/sirupsen/logrus"
@@ -36,6 +37,7 @@ func RunGrpcServerOnAddr(addr string, registerServer func(server *grpc.Server)) 
 		grpc.ChainUnaryInterceptor(
 			grpc_tags.UnaryServerInterceptor(grpc_tags.WithFieldExtractor(grpc_tags.CodeGenRequestFieldExtractor)),
 			grpc_logrus.UnaryServerInterceptor(logrusEntry),
+			logging.GRPCUnaryInterceptor, // 自定义的请求拦截处理
 		),
 		grpc.ChainStreamInterceptor(
 			grpc_tags.StreamServerInterceptor(grpc_tags.WithFieldExtractor(grpc_tags.CodeGenRequestFieldExtractor)),

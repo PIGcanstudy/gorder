@@ -10,7 +10,6 @@ import (
 	"github.com/PIGcanstudy/gorder/order/app/query"
 	domain "github.com/PIGcanstudy/gorder/order/domain/order"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -47,7 +46,6 @@ func (G GRPCServer) GetOrder(ctx context.Context, request *orderpb.GetOrderReque
 }
 
 func (G GRPCServer) UpdateOrder(ctx context.Context, request *orderpb.Order) (_ *emptypb.Empty, err error) {
-	logrus.Infof("order_grpc||request_in||request=%+v", request)
 	// 创建一个domain里的Order对象
 	order, err := domain.NewOrder(request.ID, request.CustomerID, request.Status, request.PaymentLink, convertor.NewItemConvertor().ProtosToEntities(request.Items))
 	if err != nil {

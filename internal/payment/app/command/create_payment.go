@@ -5,6 +5,7 @@ import (
 
 	"github.com/PIGcanstudy/gorder/common/decorator"
 	"github.com/PIGcanstudy/gorder/common/genproto/orderpb"
+	"github.com/PIGcanstudy/gorder/common/logging"
 	"github.com/PIGcanstudy/gorder/payment/domain"
 	"github.com/sirupsen/logrus"
 )
@@ -21,12 +22,14 @@ type createPaymentHandler struct {
 }
 
 func (c createPaymentHandler) Handle(ctx context.Context, cmd CreatePayment) (string, error) {
+	var err error
+	defer logging.WhenCommandExecute(ctx, "CreatePaymentHandler", cmd, err)
+
 	// 首先请求支付连接
 	link, err := c.processor.CreatePaymentLink(ctx, cmd.Order)
 	if err != nil {
 		return "", err
 	}
-	logrus.Infof("create payment link for order: %s success, payment link: %s", cmd.Order.ID, link)
 
 	// 更新订单状态
 	newOrder := &orderpb.Order{
