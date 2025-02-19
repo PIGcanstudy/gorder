@@ -4,14 +4,12 @@ import (
 	client "github.com/PIGcanstudy/gorder/common/client/order"
 	"github.com/PIGcanstudy/gorder/common/entity"
 	"github.com/PIGcanstudy/gorder/common/genproto/orderpb"
-	domain "github.com/PIGcanstudy/gorder/order/domain/order"
 )
 
 type OrderConvertor struct{}
 type ItemConvertor struct{}
 type ItemWithQuantityConvertor struct{}
 
-// 把[]*entity.ItemWithQuantity转换为[]client.ItemWithQuantity
 func (c *ItemWithQuantityConvertor) EntitiesToProtos(items []*entity.ItemWithQuantity) (res []*orderpb.ItemWithQuantity) {
 	for _, i := range items {
 		res = append(res, c.EntityToProto(i))
@@ -19,7 +17,6 @@ func (c *ItemWithQuantityConvertor) EntitiesToProtos(items []*entity.ItemWithQua
 	return
 }
 
-// 把[]entity.ItemWithQuantity转换为[]*orderpb.ItemWithQuantity
 func (c *ItemWithQuantityConvertor) EntityToProto(i *entity.ItemWithQuantity) *orderpb.ItemWithQuantity {
 	return &orderpb.ItemWithQuantity{
 		ID:       i.ID,
@@ -27,7 +24,6 @@ func (c *ItemWithQuantityConvertor) EntityToProto(i *entity.ItemWithQuantity) *o
 	}
 }
 
-// 把[]*orderpb.ItemWithQuantity转换为[]*entity.ItemWithQuantity
 func (c *ItemWithQuantityConvertor) ProtosToEntities(items []*orderpb.ItemWithQuantity) (res []*entity.ItemWithQuantity) {
 	for _, i := range items {
 		res = append(res, c.ProtoToEntity(i))
@@ -42,7 +38,6 @@ func (c *ItemWithQuantityConvertor) ProtoToEntity(i *orderpb.ItemWithQuantity) *
 	}
 }
 
-// 把[]client.ItemWithQuantity转换为[]*entity.ItemWithQuantity
 func (c *ItemWithQuantityConvertor) ClientsToEntities(items []client.ItemWithQuantity) (res []*entity.ItemWithQuantity) {
 	for _, i := range items {
 		res = append(res, c.ClientToEntity(i))
@@ -57,7 +52,7 @@ func (c *ItemWithQuantityConvertor) ClientToEntity(i client.ItemWithQuantity) *e
 	}
 }
 
-func (c *OrderConvertor) EntityToProto(o *domain.Order) *orderpb.Order {
+func (c *OrderConvertor) EntityToProto(o *entity.Order) *orderpb.Order {
 	c.check(o)
 	return &orderpb.Order{
 		ID:          o.ID,
@@ -68,9 +63,9 @@ func (c *OrderConvertor) EntityToProto(o *domain.Order) *orderpb.Order {
 	}
 }
 
-func (c *OrderConvertor) ProtoToEntity(o *orderpb.Order) *domain.Order {
+func (c *OrderConvertor) ProtoToEntity(o *orderpb.Order) *entity.Order {
 	c.check(o)
-	return &domain.Order{
+	return &entity.Order{
 		ID:          o.ID,
 		CustomerID:  o.CustomerID,
 		Status:      o.Status,
@@ -79,9 +74,9 @@ func (c *OrderConvertor) ProtoToEntity(o *orderpb.Order) *domain.Order {
 	}
 }
 
-func (c *OrderConvertor) ClientToEntity(o *client.Order) *domain.Order {
+func (c *OrderConvertor) ClientToEntity(o *client.Order) *entity.Order {
 	c.check(o)
-	return &domain.Order{
+	return &entity.Order{
 		ID:          o.Id,
 		CustomerID:  o.CustomerId,
 		Status:      o.Status,
@@ -90,7 +85,7 @@ func (c *OrderConvertor) ClientToEntity(o *client.Order) *domain.Order {
 	}
 }
 
-func (c *OrderConvertor) EntityToClient(o *domain.Order) *client.Order {
+func (c *OrderConvertor) EntityToClient(o *entity.Order) *client.Order {
 	c.check(o)
 	return &client.Order{
 		Id:          o.ID,

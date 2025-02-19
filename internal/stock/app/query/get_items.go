@@ -4,8 +4,9 @@ import (
 	"context"
 
 	"github.com/PIGcanstudy/gorder/common/decorator"
+	"github.com/PIGcanstudy/gorder/common/entity"
 	domain "github.com/PIGcanstudy/gorder/stock/domain/stock"
-	"github.com/PIGcanstudy/gorder/stock/entity"
+
 	"github.com/sirupsen/logrus"
 )
 

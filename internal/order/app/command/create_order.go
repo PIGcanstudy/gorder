@@ -130,10 +130,7 @@ func packItems(items []*entity.ItemWithQuantity) []*entity.ItemWithQuantity {
 	// 合并后的数据
 	var res []*entity.ItemWithQuantity
 	for id, quantity := range merged {
-		res = append(res, &entity.ItemWithQuantity{
-			ID:       id,
-			Quantity: quantity,
-		})
+		res = append(res, entity.NewItemWithQuantity(id, quantity))
 	}
 	return res
 }

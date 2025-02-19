@@ -3,11 +3,11 @@ package ports
 import (
 	"context"
 
+	"github.com/PIGcanstudy/gorder/common/convertor"
 	"github.com/PIGcanstudy/gorder/common/genproto/stockpb"
 	"github.com/PIGcanstudy/gorder/common/tracing"
 	"github.com/PIGcanstudy/gorder/stock/app"
 	"github.com/PIGcanstudy/gorder/stock/app/query"
-	"github.com/PIGcanstudy/gorder/stock/convertor"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

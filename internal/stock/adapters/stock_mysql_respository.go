@@ -3,7 +3,7 @@ package adapters
 import (
 	"context"
 
-	"github.com/PIGcanstudy/gorder/stock/entity"
+	"github.com/PIGcanstudy/gorder/common/entity"
 	"github.com/PIGcanstudy/gorder/stock/infrastructure/persistent"
 	"github.com/PIGcanstudy/gorder/stock/infrastructure/persistent/builder"
 	"github.com/pkg/errors"

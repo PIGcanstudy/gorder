@@ -7,9 +7,8 @@ import (
 	"net/http"
 
 	"github.com/PIGcanstudy/gorder/common/broker"
-	"github.com/PIGcanstudy/gorder/common/genproto/orderpb"
+	"github.com/PIGcanstudy/gorder/common/entity"
 	"github.com/PIGcanstudy/gorder/common/logging"
-	"github.com/PIGcanstudy/gorder/payment/domain"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -77,7 +76,7 @@ func (h *PanymentHandler) handleWebhook(c *gin.Context) {
 
 		if session.PaymentStatus == stripe.CheckoutSessionPaymentStatusPaid { // 如果已经支付成功，需要更改订单状态
 
-			var items []*orderpb.Item
+			var items []*entity.Item
 			_ = json.Unmarshal([]byte(session.Metadata["items"]), &items)
 
 			tr := otel.Tracer("rabbitmq")
@@ -90,13 +89,13 @@ func (h *PanymentHandler) handleWebhook(c *gin.Context) {
 				Routing:  broker.FanOut,
 				Queue:    "",
 				Exchange: broker.EventOrderPaid,
-				Body: &domain.Order{
-					ID:          session.Metadata["orderID"],
-					CustomerID:  session.Metadata["customerID"],
-					Status:      string(stripe.CheckoutSessionPaymentStatusPaid),
-					PaymentLink: session.Metadata["paymentLink"],
-					Items:       items,
-				},
+				Body: entity.NewOrder(
+					session.Metadata["orderID"],
+					session.Metadata["customerID"],
+					string(stripe.CheckoutSessionPaymentStatusPaid),
+					session.Metadata["paymentLink"],
+					items,
+				),
 			})
 		}
 	}

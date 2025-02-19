@@ -73,7 +73,13 @@ func (server HTTPServer) GetCustomerCustomerIdOrdersOrderId(c *gin.Context, cust
 		return
 	}
 
-	resp = convertor.NewOrderConvertor().EntityToClient(o)
+	resp = client.Order{
+		CustomerId:  o.CustomerID,
+		Id:          o.ID,
+		Items:       convertor.NewItemConvertor().EntitiesToClients(o.Items),
+		PaymentLink: o.PaymentLink,
+		Status:      o.Status,
+	}
 }
 
 // 验证请求信息的数量是否出错了

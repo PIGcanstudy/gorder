@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/PIGcanstudy/gorder/common/broker"
-	"github.com/PIGcanstudy/gorder/common/genproto/orderpb"
+	"github.com/PIGcanstudy/gorder/common/entity"
 	"github.com/PIGcanstudy/gorder/common/logging"
 	"github.com/PIGcanstudy/gorder/payment/app"
 	"github.com/PIGcanstudy/gorder/payment/app/command"
@@ -70,7 +70,7 @@ func (c *Consumer) handleMessage(msg amqp.Delivery, q amqp.Queue, ch *amqp.Chann
 		}
 	}()
 
-	o := &orderpb.Order{}
+	o := &entity.Order{}
 	// 反序列化消息
 	if err = json.Unmarshal(msg.Body, o); err != nil {
 		err = errors.Wrap(err, "failed to unmarshall msg to order")

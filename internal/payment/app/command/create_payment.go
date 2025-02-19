@@ -3,15 +3,16 @@ package command
 import (
 	"context"
 
+	"github.com/PIGcanstudy/gorder/common/convertor"
 	"github.com/PIGcanstudy/gorder/common/decorator"
-	"github.com/PIGcanstudy/gorder/common/genproto/orderpb"
+	"github.com/PIGcanstudy/gorder/common/entity"
 	"github.com/PIGcanstudy/gorder/common/logging"
 	"github.com/PIGcanstudy/gorder/payment/domain"
 	"github.com/sirupsen/logrus"
 )
 
 type CreatePayment struct {
-	Order *orderpb.Order
+	Order *entity.Order
 }
 
 type CreatePaymentHandler decorator.CommandHandler[CreatePayment, string]
@@ -32,16 +33,19 @@ func (c createPaymentHandler) Handle(ctx context.Context, cmd CreatePayment) (st
 	}
 
 	// 更新订单状态
-	newOrder := &orderpb.Order{
-		ID:          cmd.Order.ID,
-		CustomerID:  cmd.Order.CustomerID,
-		Status:      "waiting_for_payment",
-		Items:       cmd.Order.Items,
-		PaymentLink: link,
+	newOrder, err := entity.NewValidOrder(
+		cmd.Order.ID,
+		cmd.Order.CustomerID,
+		"waiting_for_payment",
+		link,
+		cmd.Order.Items,
+	)
+	if err != nil {
+		return "", err
 	}
 
 	// 向orderGRPC发送更新订单的请求
-	err = c.orderGRPC.UpdateOrder(ctx, newOrder)
+	err = c.orderGRPC.UpdateOrder(ctx, convertor.NewOrderConvertor().EntityToProto(newOrder))
 	return link, err
 }
 
