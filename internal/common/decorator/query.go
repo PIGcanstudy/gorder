@@ -13,7 +13,7 @@ type QueryHandler[Q any, R any] interface {
 
 // 应用QueryHandler装饰器（用来初始化QueryHandler）
 // 由于queryLoggingDecorator[C, R any]结构体实现了QueryHandler[C, R]接口，因此可以直接赋值给QueryHandler[C, R]接口变量
-func ApplyQueryDecorators[H any, R any](handler QueryHandler[H, R], logger *logrus.Entry, metricsClient MetricsClient) QueryHandler[H, R] {
+func ApplyQueryDecorators[H any, R any](handler QueryHandler[H, R], logger *logrus.Logger, metricsClient MetricsClient) QueryHandler[H, R] {
 	return queryLoggingDecorator[H, R]{
 		logger: logger,
 		base: queryMetricsDecorator[H, R]{

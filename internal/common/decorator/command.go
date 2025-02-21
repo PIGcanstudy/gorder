@@ -13,7 +13,7 @@ type CommandHandler[C any, R any] interface {
 
 // 应用CommandHandler装饰器（用来初始化CommandHandler）
 // 由于queryLoggingDecorator[C, R any]结构体实现了CommandHandler[C, R]接口，因此可以直接赋值给CommandHandler[C, R]接口变量
-func ApplyCommandDecorators[H any, R any](handler CommandHandler[H, R], logger *logrus.Entry, metricsClient MetricsClient) CommandHandler[H, R] {
+func ApplyCommandDecorators[H any, R any](handler CommandHandler[H, R], logger *logrus.Logger, metricsClient MetricsClient) CommandHandler[H, R] {
 	return commandLoggingDecorator[H, R]{
 		logger: logger,
 		base: commandMetricsDecorator[H, R]{

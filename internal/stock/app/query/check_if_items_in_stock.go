@@ -33,7 +33,7 @@ type checkIfItemsInStockHandler struct {
 func NewCheckIfItemsInStockHandler(
 	stockRepo domain.Repository,
 	stripeAPI *integration.StripeAPI,
-	logger *logrus.Entry,
+	logger *logrus.Logger,
 	metricClient decorator.MetricsClient,
 ) CheckIfItemsInStockHandler {
 	if stockRepo == nil {
@@ -69,7 +69,21 @@ func (h checkIfItemsInStockHandler) Handle(ctx context.Context, query CheckIfIte
 		}
 	}()
 
+	var err error
+
 	var res []*entity.Item
+	defer func() {
+		f := logrus.Fields{
+			"query": query,
+			"res":   res,
+		}
+		if err != nil {
+			logging.Errorf(ctx, f, "checkIfItemsInStock err=%v", err)
+		} else {
+			logging.Infof(ctx, f, "%s", "checkIfItemsInStock success")
+		}
+	}()
+
 	for _, i := range query.Items {
 		priceID, err := h.stripeAPI.GetPriceByProductID(ctx, i.ID)
 		if err != nil || priceID == "" {

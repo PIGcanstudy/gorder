@@ -2,11 +2,13 @@ package logging
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/PIGcanstudy/gorder/common/tracing"
+	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
+	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"
-	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 // 本文件是为了规范日志格式
@@ -17,7 +19,59 @@ import (
 func Init() {
 	SetFormatter(logrus.StandardLogger())
 	logrus.SetLevel(logrus.DebugLevel)
+	setOutput(logrus.StandardLogger())
 	logrus.AddHook(traceHook{})
+}
+
+// 设置日志的输出文件位置
+func setOutput(logger *logrus.Logger) {
+	var (
+		folder    = "./log/"
+		filePath  = "app.log"
+		errorPath = "errors.log"
+	)
+	if err := os.MkdirAll(folder, 0750); err != nil && !os.IsExist(err) {
+		panic(err)
+	}
+	file, err := os.OpenFile(folder+filePath, os.O_CREATE|os.O_RDWR, 0755)
+	if err != nil {
+		panic(err)
+	}
+	_, err = os.OpenFile(folder+errorPath, os.O_CREATE|os.O_RDWR, 0755)
+	if err != nil {
+		panic(err)
+	}
+	// 让日志输出到对应文件中
+	logger.SetOutput(file)
+
+	rotateInfo, err := rotatelogs.New(
+		folder+filePath+".%Y%m%d",
+		rotatelogs.WithLinkName("app.log"),       // 设置软链名为app.log
+		rotatelogs.WithMaxAge(7*24*time.Hour),    // 设置日志文件最长存活时间为7天
+		rotatelogs.WithRotationTime(1*time.Hour), // 设置日志切割时间为1小时
+	)
+	if err != nil {
+		panic(err)
+	}
+	rotateError, err := rotatelogs.New(
+		folder+errorPath+".%Y%m%d",
+		rotatelogs.WithLinkName("errors.log"),    // 设置软链名为errors.log
+		rotatelogs.WithMaxAge(7*24*time.Hour),    // 设置日志文件最长存活时间为7天
+		rotatelogs.WithRotationTime(1*time.Hour), // 设置日志切割时间为1小时
+	)
+	// 定义哪个日志level对应哪个切割逻辑
+	rotationMap := lfshook.WriterMap{
+		logrus.DebugLevel: rotateInfo,
+		logrus.InfoLevel:  rotateInfo,
+		logrus.WarnLevel:  rotateError,
+		logrus.ErrorLevel: rotateError,
+		logrus.FatalLevel: rotateError,
+		logrus.PanicLevel: rotateError,
+	}
+	// 它将不同的日志级别（logrus.DebugLevel, logrus.InfoLevel, logrus.WarnLevel, logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel）映射到不同的日志切割逻辑（rotateInfo 和 rotateError）。
+	logrus.AddHook(lfshook.NewHook(rotationMap, &logrus.JSONFormatter{
+		TimestampFormat: time.DateTime,
+	}))
 }
 
 func SetFormatter(logger *logrus.Logger) {
@@ -32,11 +86,11 @@ func SetFormatter(logger *logrus.Logger) {
 	})
 
 	// if isLocal, _ := strconv.ParseBool(os.Getenv("LOCAL_ENV")); isLocal {
-	logger.SetFormatter(&prefixed.TextFormatter{
-		ForceColors:     true,
-		ForceFormatting: true,
-		TimestampFormat: time.RFC3339,
-	})
+	// logger.SetFormatter(&prefixed.TextFormatter{
+	// 	ForceColors:     true,
+	// 	ForceFormatting: true,
+	// 	TimestampFormat: time.RFC3339,
+	// })
 	// }
 }
 

@@ -22,11 +22,8 @@ type getCustomerOrderHandler struct {
 	orderRepo domain.Repository
 }
 
-func NewGetCustomerOrderHandler(
-	orderRepo domain.Repository,
-	logger *logrus.Entry,
-	metricClient decorator.MetricsClient,
-) GetCustomerOrderHandler {
+func NewGetCustomerOrderHandler(orderRepo domain.Repository, logger *logrus.Logger, metricClient decorator.MetricsClient) GetCustomerOrderHandler {
+
 	if orderRepo == nil { // 如果没有仓库，则 panic
 		panic("nil orderRepo")
 	}

@@ -36,13 +36,8 @@ type createOrderHandler struct {
 	channel   *amqp.Channel
 }
 
-func NewCreateOrderHandler(
-	orderRepo domain.Repository,
-	stockGRPC query.StockService,
-	channel *amqp.Channel,
-	logger *logrus.Entry,
-	metricClient decorator.MetricsClient,
-) CreateOrderHandler {
+func NewCreateOrderHandler(orderRepo domain.Repository, stockGRPC query.StockService, channel *amqp.Channel, logger *logrus.Logger, metricClient decorator.MetricsClient) CreateOrderHandler {
+
 	if orderRepo == nil {
 		panic("orderRepo is nil")
 	}
