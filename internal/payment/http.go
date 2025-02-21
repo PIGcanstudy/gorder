@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/PIGcanstudy/gorder/common/broker"
+	"github.com/PIGcanstudy/gorder/common/consts"
 	"github.com/PIGcanstudy/gorder/common/entity"
 	"github.com/PIGcanstudy/gorder/common/logging"
 	"github.com/gin-gonic/gin"
@@ -92,7 +93,7 @@ func (h *PanymentHandler) handleWebhook(c *gin.Context) {
 				Body: entity.NewOrder(
 					session.Metadata["orderID"],
 					session.Metadata["customerID"],
-					string(stripe.CheckoutSessionPaymentStatusPaid),
+					consts.OrderStatusPaid,
 					session.Metadata["paymentLink"],
 					items,
 				),

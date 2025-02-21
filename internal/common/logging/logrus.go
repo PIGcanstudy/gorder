@@ -9,6 +9,7 @@ import (
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 // 本文件是为了规范日志格式
@@ -86,11 +87,11 @@ func SetFormatter(logger *logrus.Logger) {
 	})
 
 	// if isLocal, _ := strconv.ParseBool(os.Getenv("LOCAL_ENV")); isLocal {
-	// logger.SetFormatter(&prefixed.TextFormatter{
-	// 	ForceColors:     true,
-	// 	ForceFormatting: true,
-	// 	TimestampFormat: time.RFC3339,
-	// })
+	logger.SetFormatter(&prefixed.TextFormatter{
+		ForceColors:     true,
+		ForceFormatting: true,
+		TimestampFormat: time.RFC3339,
+	})
 	// }
 }
 

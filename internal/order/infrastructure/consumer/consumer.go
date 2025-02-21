@@ -86,11 +86,12 @@ func (c *Consumer) handleMessage(ch *amqp.Channel, msg amqp.Delivery, q amqp.Que
 	// 更新数据库中的订单信息
 	_, err = c.app.Commands.UpdateOrder.Handle(context.Background(), command.UpdateOrder{
 		Order: o,
-		UpdateFn: func(ctx context.Context, order *domain.Order) (*domain.Order, error) {
-			if err := order.IsPaid(); err != nil { // 校验下订单是否被支付
+		UpdateFn: func(ctx context.Context, oldOrder *domain.Order) (*domain.Order, error) {
+			// 更新状态
+			if err := oldOrder.UpdateStatus(o.Status); err != nil {
 				return nil, err
 			}
-			return order, nil
+			return oldOrder, nil
 		},
 	})
 

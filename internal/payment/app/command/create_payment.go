@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 
+	"github.com/PIGcanstudy/gorder/common/consts"
 	"github.com/PIGcanstudy/gorder/common/convertor"
 	"github.com/PIGcanstudy/gorder/common/decorator"
 	"github.com/PIGcanstudy/gorder/common/entity"
@@ -36,7 +37,7 @@ func (c createPaymentHandler) Handle(ctx context.Context, cmd CreatePayment) (st
 	newOrder, err := entity.NewValidOrder(
 		cmd.Order.ID,
 		cmd.Order.CustomerID,
-		"waiting_for_payment",
+		consts.OrderStatusWaitingForPayment,
 		link,
 		cmd.Order.Items,
 	)

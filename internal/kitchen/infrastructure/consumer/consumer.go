@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/PIGcanstudy/gorder/common/broker"
+	"github.com/PIGcanstudy/gorder/common/consts"
 	"github.com/PIGcanstudy/gorder/common/convertor"
 	"github.com/PIGcanstudy/gorder/common/entity"
 	"github.com/PIGcanstudy/gorder/common/genproto/orderpb"
@@ -86,7 +87,7 @@ func (c *Consumer) handleMessage(ch *amqp.Channel, msg amqp.Delivery, q amqp.Que
 	if err := c.orderGRPC.UpdateOrder(mqCtx, &orderpb.Order{
 		ID:          o.ID,
 		CustomerID:  o.CustomerID,
-		Status:      "ready",
+		Status:      consts.OrderStatusReady,
 		Items:       convertor.NewItemConvertor().EntitiesToProtos(o.Items),
 		PaymentLink: o.PaymentLink,
 	}); err != nil {
