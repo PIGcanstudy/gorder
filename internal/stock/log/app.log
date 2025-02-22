@@ -1,0 +1,2 @@
+[0;90m[0000][0m [0;32m INFO[0m registered to consul [0;32maddr[0m=127.0.0.1:5003 [0;32mserviceName[0m=stock
+[0;90m[0000][0m [0;32m INFO[0m grpc server strat, listening on 127.0.0.1:5003

@@ -33,7 +33,10 @@ func NewApplication(ctx context.Context) (app.Application, func()) {
 
 // 创建一个API应用对象
 func newApplication(_ context.Context, orderGRPC command.OrderService, processor domain.Processor) app.Application {
-	metricClient := metrics.TodoMetrics{}
+	metricClient := metrics.NewPrometheusMetricsClient(&metrics.PrometheusMetricsClientConfig{
+		Host:        viper.GetString("payment.metrics_export_addr"),
+		ServiceName: viper.GetString("payment.service-name"),
+	})
 	return app.Application{
 		Commands: app.Commands{
 			CreatePayment: command.NewCreatePaymentHandler(processor, orderGRPC, logrus.StandardLogger(), metricClient),

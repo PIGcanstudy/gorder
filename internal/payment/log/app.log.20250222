@@ -1,0 +1,7 @@
+{"level":"info","msg":"waiting for order grpc client, timeout: 10 seconds","time":"2025-02-22 13:51:14"}
+{"level":"debug","msg":"creating order grpc client","time":"2025-02-22 13:51:14"}
+{"level":"info","msg":"Discovered 1 instance of order, addrs=[127.0.0.1:5002]","time":"2025-02-22 13:51:14"}
+{"level":"info","msg":"Payment receive a message from order.created, msg={\"ID\":\"67b966a4c7181c7e50030e84\",\"CustomerID\":\"1567\",\"Status\":\"pending\",\"PaymentLink\":\"\",\"Items\":[{\"ID\":\"prod_RmBpuP8FdzkPV0\",\"Name\":\"fires\",\"Quantity\":3,\"PriceID\":\"price_1QsdSB9Q405C6VieepzsBJyX\"}]}","time":"2025-02-22 13:54:44"}
+{"cmd":{"Order":{"ID":"67b966a4c7181c7e50030e84","CustomerID":"1567","Status":"pending","PaymentLink":"","Items":[{"ID":"prod_RmBpuP8FdzkPV0","Name":"fires","Quantity":3,"PriceID":"price_1QsdSB9Q405C6VieepzsBJyX"}]}},"level":"info","msg":"CreatePaymentHandler_command_success","time":"2025-02-22 13:54:45"}
+{"command":"CreatePayment","command_body":"{\"Order\":{\"ID\":\"67b966a4c7181c7e50030e84\",\"CustomerID\":\"1567\",\"Status\":\"pending\",\"PaymentLink\":\"\",\"Items\":[{\"ID\":\"prod_RmBpuP8FdzkPV0\",\"Name\":\"fires\",\"Quantity\":3,\"PriceID\":\"price_1QsdSB9Q405C6VieepzsBJyX\"}]}}","level":"info","msg":"Query execute successfully","time":"2025-02-22 13:54:45"}
+{"level":"info","msg":"consume success","time":"2025-02-22 13:54:45"}

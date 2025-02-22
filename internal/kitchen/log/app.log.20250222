@@ -1,0 +1,4 @@
+{"level":"info","msg":"waiting for order grpc client, timeout: 10 seconds","time":"2025-02-22 13:51:29"}
+{"level":"debug","msg":"creating order grpc client","time":"2025-02-22 13:51:29"}
+{"level":"info","msg":"Discovered 1 instance of order, addrs=[127.0.0.1:5002]","time":"2025-02-22 13:51:29"}
+{"level":"info","msg":"to exit, press ctrl+c","time":"2025-02-22 13:51:29"}

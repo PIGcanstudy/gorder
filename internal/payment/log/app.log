@@ -1,0 +1,3 @@
+[0;90m[0000][0m [0;32m INFO[0m waiting for order grpc client, timeout: 10 seconds
+[0;90m[0000][0m [0;34mDEBUG[0m creating order grpc client
+[0;90m[0000][0m [0;32m INFO[0m Discovered 1 instance of order, addrs=[127.0.0.1:5002]

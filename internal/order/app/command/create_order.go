@@ -11,8 +11,8 @@ import (
 	"github.com/PIGcanstudy/gorder/common/logging"
 	"github.com/PIGcanstudy/gorder/order/app/query"
 	domain "github.com/PIGcanstudy/gorder/order/domain/order"
+	"github.com/PIGcanstudy/gorder/order/domain/service"
 	"github.com/pkg/errors"
-	amqp "github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc/status"
 
@@ -31,12 +31,12 @@ type CreateOrderResult struct {
 type CreateOrderHandler decorator.CommandHandler[CreateOrder, *CreateOrderResult]
 
 type createOrderHandler struct {
-	orderRepo domain.Repository
-	stockGRPC query.StockService // 使用接口而不是具体的实现
-	channel   *amqp.Channel
+	orderRepo      domain.Repository
+	stockGRPC      query.StockService // 使用接口而不是具体实现
+	eventPublisher domain.EventPublisher
 }
 
-func NewCreateOrderHandler(orderRepo domain.Repository, stockGRPC query.StockService, channel *amqp.Channel, logger *logrus.Logger, metricClient decorator.MetricsClient) CreateOrderHandler {
+func NewCreateOrderHandler(orderRepo domain.Repository, stockGRPC query.StockService, eventPublisher domain.EventPublisher, logger *logrus.Logger, metricClient decorator.MetricsClient) CreateOrderHandler {
 
 	if orderRepo == nil {
 		panic("orderRepo is nil")
@@ -44,14 +44,16 @@ func NewCreateOrderHandler(orderRepo domain.Repository, stockGRPC query.StockSer
 	if stockGRPC == nil {
 		panic("nil stockGRPC")
 	}
-	if channel == nil {
-		panic("nil channel ")
+
+	if eventPublisher == nil {
+		panic("nil eventPublisher")
 	}
+
 	return decorator.ApplyCommandDecorators[CreateOrder, *CreateOrderResult](
 		createOrderHandler{
-			orderRepo: orderRepo,
-			stockGRPC: stockGRPC,
-			channel:   channel,
+			orderRepo:      orderRepo,
+			stockGRPC:      stockGRPC,
+			eventPublisher: eventPublisher,
 		},
 		logger,
 		metricClient,
@@ -79,23 +81,12 @@ func (h createOrderHandler) Handle(ctx context.Context, cmd CreateOrder) (*Creat
 		return nil, err
 	}
 
-	order, err := h.orderRepo.Create(ctx, pendingOrder)
-
 	// 开始向RabbitMQ发送消息
 
 	// 序列化要发送的订单消息
 	// 发布一个消息到exchange，并指定队列的name
-	err = broker.PublishEvent(ctx, broker.PublishEventReq{
-		Channel:  h.channel,
-		Routing:  broker.Direct,
-		Queue:    broker.EventOrderCreated,
-		Exchange: "",
-		Body:     order,
-	})
 
-	if err != nil {
-		return nil, errors.Wrapf(err, "publish event error q.Name=%s", broker.EventOrderCreated)
-	}
+	order, err := service.NewOrderDomainService(h.orderRepo, h.eventPublisher).CreateOrder(ctx, *pendingOrder)
 
 	return &CreateOrderResult{
 		OrderID: order.ID,
