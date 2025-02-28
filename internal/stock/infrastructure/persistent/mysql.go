@@ -76,13 +76,13 @@ func (d *MySQL) UseTransaction(tx *gorm.DB) *gorm.DB {
 	return tx
 }
 
-func (d MySQL) Update(ctx context.Context, tx *gorm.DB, cond *builder.Stock, update map[string]any) (err error) {
+func (d MySQL) Update(ctx context.Context, tx *gorm.DB, cond *builder.Stock, update map[string]any) (res *gorm.DB, err error) {
 	var returning StockModel
 	_, deferLog := logging.WhenMySQL(ctx, "BatchUpdateStock", cond)
 	defer deferLog(returning, &err)
 
-	res := cond.Fill(d.UseTransaction(tx).WithContext(ctx).Model(&returning).Clauses(clause.Returning{})).Updates(update)
-	return res.Error
+	res = cond.Fill(d.UseTransaction(tx).WithContext(ctx).Model(&returning).Clauses(clause.Returning{})).Updates(update)
+	return res, res.Error
 }
 
 func (d MySQL) StartTransaction(fc func(tx *gorm.DB) error) error {

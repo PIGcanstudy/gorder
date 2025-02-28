@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+	"time"
 
 	"github.com/PIGcanstudy/gorder/common/entity"
 	"github.com/PIGcanstudy/gorder/common/logging"
@@ -71,22 +72,38 @@ func (m MySQLStockRepository) updateOptimistic(
 	updateFn func(ctx context.Context, existing []*entity.ItemWithQuantity, query []*entity.ItemWithQuantity,
 	) ([]*entity.ItemWithQuantity, error)) error {
 	for _, queryData := range data {
-		var newestRecord *persistent.StockModel
-		newestRecord, err := m.db.GetStockByID(ctx, builder.NewStock().ProductIDs(queryData.ID))
-		// 在即将更新前查出库存表的最新记录
-		if err != nil {
-			return err
-		}
-		// 将一开始查询得到的记录和即将更新前查出的库存表的最新记录的版本号进行比较
-		if err = m.db.Update(
-			ctx,
-			tx,
-			builder.NewStock().ProductIDs(queryData.ID).Versions(newestRecord.Version).QuantityGT(queryData.Quantity),
-			map[string]any{
-				"quantity": gorm.Expr("quantity - ?", queryData.Quantity),
-				"version":  newestRecord.Version + 1,
-			}); err != nil {
-			return err
+
+		maxRetries := 3
+		for retries := 1; retries <= maxRetries; retries++ {
+			var newestRecord *persistent.StockModel
+			newestRecord, err := m.db.GetStockByID(ctx, builder.NewStock().ProductIDs(queryData.ID))
+			// 在即将更新前查出库存表的最新记录
+			if err != nil {
+				return err
+			}
+			// 将一开始查询得到的记录和即将更新前查出的库存表的最新记录的版本号进行比较
+			result, err := m.db.Update(
+				ctx,
+				tx,
+				builder.NewStock().ProductIDs(queryData.ID).Versions(newestRecord.Version).QuantityGT(queryData.Quantity),
+				map[string]any{
+					"quantity": gorm.Expr("quantity - ?", queryData.Quantity),
+					"version":  newestRecord.Version + 1,
+				})
+
+			if err != nil {
+				logging.Infof(ctx, nil, "%s", "fail to Update stock because version no match")
+			}
+
+			if result.RowsAffected > 0 {
+				logging.Infof(ctx, nil, "%s", "update success")
+				break
+			}
+
+			if newestRecord.Quantity-queryData.Quantity <= 0 {
+				return err
+			}
+			time.Sleep(time.Duration(100 * (1 << retries)))
 		}
 	}
 
@@ -101,29 +118,32 @@ func (m MySQLStockRepository) updatePessimistic(
 	updateFn func(ctx context.Context, existing []*entity.ItemWithQuantity, query []*entity.ItemWithQuantity,
 	) ([]*entity.ItemWithQuantity, error)) error {
 	// 找出与产品id对应的所有产品并加上forUpdate锁
-	var dest []persistent.StockModel
-	dest, err := m.db.BatchGetStockByID(ctx, builder.NewStock().ProductIDs(getIDFromEntities(data)...).ForUpdate())
-	if err != nil {
-		return errors.Wrap(err, "failed to find data")
-	}
+	//var dest []persistent.StockModel
+	// _, err := m.db.BatchGetStockByID(ctx, builder.NewStock().ProductIDs(getIDFromEntities(data)...).ForUpdate())
+	// if err != nil {
+	// 	return errors.Wrap(err, "failed to find data")
+	// }
 
-	existing := m.unmarshalFromDatabase(dest)
-	updated, err := updateFn(ctx, existing, data)
-	if err != nil {
-		panic(err)
-	}
+	// //existing := m.unmarshalFromDatabase(dest)
+	// //updated, err := updateFn(ctx, existing, data)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	for _, upd := range updated {
-		for _, query := range data {
-			if upd.ID != query.ID {
-				continue
-			}
-			// 执行更新逻辑
-			if err = m.db.Update(ctx, tx, builder.NewStock().ProductIDs(upd.ID).QuantityGT(query.Quantity),
-				map[string]any{"quantity": gorm.Expr("quantity - ?", query.Quantity)}); err != nil {
-				return errors.Wrapf(err, "unable to update %s", upd.ID)
-			}
+	// for _, upd := range updated {
+	for _, query := range data {
+		// 		if upd.ID != query.ID {
+		// 			continue
+		// 		}
+		// 执行库存更新时每次都加锁
+		_, err := m.db.BatchGetStockByID(ctx, builder.NewStock().ProductIDs(query.ID).ForUpdate())
+
+		if _, err = m.db.Update(ctx, tx, builder.NewStock().ProductIDs(query.ID).QuantityGT(query.Quantity),
+			map[string]any{"quantity": gorm.Expr("quantity - ?", query.Quantity)}); err != nil {
+			return errors.Wrapf(err, "unable to update %s", query.ID)
 		}
+
+		// 	}
 	}
 	return nil
 }

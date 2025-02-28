@@ -1,0 +1,2 @@
+{"addr":"127.0.0.1:5003","level":"info","msg":"registered to consul","serviceName":"stock","time":"2025-02-23 00:20:54"}
+{"level":"info","msg":"grpc server strat, listening on 127.0.0.1:5003","time":"2025-02-23 00:20:54"}

@@ -60,7 +60,7 @@ func TestMySQLStockRepository_UpdateStock_Race(t *testing.T) {
 	// 准备初始数据
 	var (
 		testItem           = "item-1"
-		initialStock int32 = 100
+		initialStock int32 = 150
 	)
 	err := db.Create(ctx, nil, &persistent.StockModel{
 		ProductID: testItem,
@@ -70,7 +70,7 @@ func TestMySQLStockRepository_UpdateStock_Race(t *testing.T) {
 
 	repo := NewMySQLStockRepository(db)
 	var wg sync.WaitGroup
-	concurrentGoroutines := 10
+	concurrentGoroutines := 150
 	for i := 0; i < concurrentGoroutines; i++ {
 		wg.Add(1)
 		go func() {

@@ -1,3 +1,7 @@
 [0;90m[0000][0m [0;32m INFO[0m waiting for order grpc client, timeout: 10 seconds
 [0;90m[0000][0m [0;34mDEBUG[0m creating order grpc client
 [0;90m[0000][0m [0;32m INFO[0m Discovered 1 instance of order, addrs=[127.0.0.1:5002]
+[0;90m[0209][0m [0;32m INFO[0m Payment receive a message from order.created, msg={"ID":"67b966a4c7181c7e50030e84","CustomerID":"1567","Status":"pending","PaymentLink":"","Items":[{"ID":"prod_RmBpuP8FdzkPV0","Name":"fires","Quantity":3,"PriceID":"price_1QsdSB9Q405C6VieepzsBJyX"}]} [0;32mtrace[0m=a0ba37fb3c6d0c3990e5fd8c956da736
+[0;90m[0210][0m [0;32m INFO[0m CreatePaymentHandler_command_success [0;32mcmd[0m={Order:0xc0000acf00} [0;32mtrace[0m=a0ba37fb3c6d0c3990e5fd8c956da736
+[0;90m[0210][0m [0;32m INFO[0m Query execute successfully [0;32mcommand[0m=CreatePayment [0;32mcommand_body[0m={"Order":{"ID":"67b966a4c7181c7e50030e84","CustomerID":"1567","Status":"pending","PaymentLink":"","Items":[{"ID":"prod_RmBpuP8FdzkPV0","Name":"fires","Quantity":3,"PriceID":"price_1QsdSB9Q405C6VieepzsBJyX"}]}} [0;32mtrace[0m=a0ba37fb3c6d0c3990e5fd8c956da736
+[0;90m[0210][0m [0;32m INFO[0m consume success [0;32mtrace[0m=a0ba37fb3c6d0c3990e5fd8c956da736
